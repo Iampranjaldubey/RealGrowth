@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debt-to-GDP Ratio | Global Economic Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+    <style>
+        /* Base styles for the map */
+        .country {
+            fill-opacity: 1;
+            stroke: #fff;
+            stroke-width: 0.5;
+            transition: stroke 0.2s, stroke-width 0.2s;
+        }
+        
+        /* Hover effect for countries */
+        .country:hover {
+            stroke: #000;
+            stroke-width: 2;
+            cursor: pointer;
+        }
+        
+        /* Style for the tooltip */
+        .tooltip {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            pointer-events: none;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Style for the map container */
+        .map-container {
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        /* Style for the status message */
+        #status-message {
+            font-family: Arial, sans-serif;
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #f8f8f8;
+            border-left: 4px solid #555;
+        }
+        
+        /* Legend styles */
+        .legend {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 4px;
+            padding: 10px;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+        }
+        
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .legend-scale ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .legend-scale ul li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+        
+        .legend-scale ul li span {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Global Economic Data Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="gdp.html">GDP</a></li>
+                <li><a href="inflation.html">Inflation</a></li>
+                <li><a href="food.html">Food Prices</a></li>
+                <li><a href="population.html">Population</a></li>
+                <li><a href="wages.html">Wages</a></li>
+                <li><a href="debt.html">Debt</a></li>
+                <li><a href="growth.html">Growth</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="container">
+        <h2>World Debt-to-GDP Ratio Map</h2>
+        <p>Explore debt-to-GDP ratios across different countries.</p>
+        
+        <div class="controls">
+            <label for="yearSelect">Select Year:</label>
+            <select id="yearSelect" onchange="updateMap()">
+                <option value="2022">2022</option>
+                <option value="2021">2021</option>
+                <option value="2020">2020</option>
+                <option value="2019">2019</option>
+                <option value="2018">2018</option>
+            </select>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="legend">
+                <div class="legend-title">Debt-to-GDP Ratio (%)</div>
+                <div class="legend-scale">
+                    <ul class="legend-labels">
+                        <li><span style="background:#ffffcc;"></span>< 50%</li>
+                        <li><span style="background:#a1dab4;"></span>50% - 100%</li>
+                        <li><span style="background:#41b6c4;"></span>100% - 150%</li>
+                        <li><span style="background:#2c7fb8;"></span>150% - 200%</li>
+                        <li><span style="background:#253494;"></span>> 200%</li>
+                    </ul>
+                </div>
+            </div>
+            <div id="status-message"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2023 Global Economic Data Dashboard</p>
+    </footer>
+
+    <script>
+        // Define the API base URL from your utility script
+        const API_BASE_URL = 'https://dhp-project-2-1n7f.onrender.com/api';
+        
+        // Map dimensions
+        const width = 960;
+        const height = 500;
+        
+        // Color scale for debt-to-GDP ratio
+        const colorScale = d3.scaleThreshold()
+            .domain([50, 100, 150, 200])
+            .range(["#ffffcc", "#a1dab4", "#41b6c4", "#2c7fb8", "#253494"]);
+        
+        // Create SVG for the map
+        const svg = d3.select("#map").append("svg")
+            .attr("width", "100%")
+            .attr("height", height)
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("preserveAspectRatio", "xMidYMid meet");
+        
+        // Create a group for the map
+        const g = svg.append("g");
+        
+        // Create a projection for the map
+        const projection = d3.geoNaturalEarth1()
+            .scale(width / 2 / Math.PI)
+            .translate([width / 2, height / 2]);
+        
+        // Create a path generator
+        const path = d3.geoPath()
+            .projection(projection);
+        
+        // Create a tooltip
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0)
+            .style("position", "absolute")
+            .style("background-color", "white")
+            .style("border", "1px solid #ddd")
+            .style("border-radius", "4px")
+            .style("padding", "8px")
+            .style("pointer-events", "none");
+        
+        // Show status messages
+        function showStatusMessage(message, isError = false) {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.textContent = message;
+            statusDiv.style.color = isError ? 'red' : 'green';
+            statusDiv.style.padding = '10px';
+            statusDiv.style.marginTop = '10px';
+        }
+        
+        // Load world map data
+        Promise.all([
+            d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+        ]).then(([world]) => {
+            showStatusMessage("World map loaded. Fetching debt data...");
+            
+            // Convert TopoJSON to GeoJSON
+            const countries = topojson.feature(world, world.objects.countries).features;
+            
+            // Create a lookup table for country IDs to names
+            const countryIdToName = {};
+            countries.forEach(country => {
+                // Store the country name by its feature ID
+                countryIdToName[country.id] = country.properties.name;
+            });
+            
+            // Draw the map
+            g.selectAll("path")
+                .data(countries)
+                .enter().append("path")
+                .attr("class", "country")
+                .attr("d", path)
+                .attr("fill", "#ccc");
+            
+            // Load initial data
+            updateMap();
+        }).catch(error => {
+            console.error("Error loading map data:", error);
+            showStatusMessage("Error loading map data. Check console for details.", true);
+        });
+        
+        // Function to fetch debt data using the proper API URL from your utility script
+        async function fetchDebtData(year) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/debt?year=${year}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching debt data:", error);
+                showStatusMessage(`Error fetching debt data: ${error.message}`, true);
+                throw error;
+            }
+        }
+        
+        // Function to update the map with data for the selected year
+        async function updateMap() {
+            const year = document.getElementById("yearSelect").value;
+            showStatusMessage(`Loading debt data for ${year}...`);
+            
+            try {
+                // Use the fetchDebtData function from your utility script
+                const data = await fetchDebtData(year);
+                
+                console.log("Debt data received:", data); // Log the data for debugging
+                
+                if (!data || data.length === 0) {
+                    showStatusMessage(`No data available for ${year}`, true);
+                    return;
+                }
+                
+                // Create a map for quick lookup by country name
+                const debtMap = {};
+                data.forEach(d => {
+                    if (d.country && d.value !== undefined && d.value !== null) {
+                        debtMap[d.country] = parseFloat(d.value);
+                    }
+                });
+                
+                console.log("Processed debt map:", debtMap); // Log the processed data
+                
+                // Count how many countries have data
+                const countriesWithData = Object.keys(debtMap).length;
+                
+                // Update country colors based on debt-to-GDP ratio
+                const countryPaths = svg.selectAll(".country");
+                
+                countryPaths
+                    .attr("fill", function(d) {
+                        const countryName = d.properties.name;
+                        return debtMap[countryName] !== undefined ? 
+                               colorScale(debtMap[countryName]) : "#ccc";
+                    })
+                    .on("mouseover", function(event, d) {
+                        const countryName = d.properties.name;
+                        const debtValue = debtMap[countryName];
+                        
+                        tooltip.transition()
+                            .duration(200)
+                            .style("opacity", 0.9);
+                        
+                        tooltip.html(`
+                            <strong>${countryName}</strong><br>
+                            Debt-to-GDP: ${debtValue !== undefined ? debtValue.toFixed(2) + '%' : 'No data'}
+                        `)
+                            .style("left", (event.pageX + 10) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function() {
+                        tooltip.transition()
+                            .duration(500)
+                            .style("opacity", 0);
+                    });
+                
+                showStatusMessage(`Map updated with ${countriesWithData} countries' debt data for ${year}`);
+                
+            } catch (error) {
+                console.error("Error updating map:", error);
+                showStatusMessage(`Error updating map: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>

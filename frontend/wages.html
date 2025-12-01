@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Average Wages | Global Economic Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Global Economic Data Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="gdp.html">GDP</a></li>
+                <li><a href="inflation.html">Inflation</a></li>
+                <li><a href="food.html">Food Prices</a></li>
+                <li><a href="population.html">Population</a></li>
+                <li><a href="wages.html">Wages</a></li>
+                <li><a href="debt.html">Debt</a></li>
+                <li><a href="growth.html">Growth</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="container">
+        <h2>Average Wages by Country</h2>
+        <p>Explore average wage trends across different countries over time.</p>
+        
+        <div class="form-group">
+            <label for="countrySelect">Select a Country:</label>
+            <select id="countrySelect">
+                <option value="">-- Select a Country --</option>
+            </select>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="wagesChart"></canvas>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2023 Global Economic Data Dashboard</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Global chart variable
+        let wagesChart = null;
+        
+        // Load countries
+        async function loadCountries() {
+            try {
+                const countries = await fetchWageCountries(); // Use utility function
+                populateSelect('countrySelect', countries, { text: '-- Select a Country --', value: '' });
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+        
+        // Load wage data for a country
+        async function loadWageData(country) {
+            if (!country) return;
+            
+            try {
+                const data = await fetchWagesByCountry(country); // Use utility function
+                
+                // Convert object to arrays for Chart.js
+                const years = Object.keys(data);
+                const wages = Object.values(data);
+                
+                wagesChart = createOrUpdateChart(wagesChart, {
+                    canvasId: 'wagesChart',
+                    type: 'line',
+                    data: {
+                        labels: years,
+                        datasets: [{
+                            label: `${country} Average Wages (USD)`,
+                            data: wages,
+                            borderColor: '#4F46E5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Average Wages for ${country}`,
+                                font: { size: 18 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `Average Wage: $${context.parsed.y.toLocaleString()}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Year'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Average Wage (USD)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCountries();
+            
+            // Add event listener for country selection
+            document.getElementById('countrySelect').addEventListener('change', function() {
+                loadWageData(this.value);
+            });
+        });
+    </script>
+</body>
+</html>

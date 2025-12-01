@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Economic Data Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container"><div class="navbar">
+        <h1>Global Economic Data Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="gdp.html">GDP</a></li>
+                <li><a href="inflation.html">Inflation</a></li>
+                <li><a href="food.html">Food Prices</a></li>
+                <li><a href="population.html">Population</a></li>
+                <li><a href="wages.html">Wages</a></li>
+                <li><a href="debt.html">Debt</a></li>
+                <li><a href="growth.html">Growth</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div class="data-grid"></div>
+
+
+    <div class="container">
+        <div class="welcome-section">
+            <h2>Welcome to the Global Economic Data Dashboard</h2>
+            <p>Explore comprehensive economic data from around the world. Select a category from the navigation bar to view detailed visualizations.</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card" onclick="window.location.href='gdp.html'">
+                <div class="feature-icon">📈</div>
+                <h3>GDP Per Capita</h3>
+                <p>Compare GDP per capita across different countries and years.</p>
+            </div>
+            <div class="feature-card" onclick="window.location.href='inflation.html'">
+                <div class="feature-icon">💹</div>
+                <h3>Inflation Rates</h3>
+                <p>Analyze inflation trends across different economies.</p>
+            </div>
+            <div class="feature-card" onclick="window.location.href='food.html'">
+                <div class="feature-icon">🍲</div>
+                <h3>Food Prices</h3>
+                <p>Explore the cost of healthy diets around the world.</p>
+            </div>
+            <div class="feature-card" onclick="window.location.href='population.html'">
+                <div class="feature-icon">👥</div>
+                <h3>Population</h3>
+                <p>Compare urban and rural population distributions.</p>
+            </div>
+            <div class="feature-card" onclick="window.location.href='wages.html'">
+                <div class="feature-icon">💰</div>
+                <h3>Average Wages</h3>
+                <p>Track wage trends across different countries.</p>
+            </div>
+            <div class="feature-card" onclick="window.location.href='debt.html'">
+                <div class="feature-icon">🏦</div>
+                <h3>Debt to GDP</h3>
+                <p>Visualize debt-to-GDP ratios on a global map.</p>
+            </div>
+            <div class="feature-card" onclick="window.location.href='growth.html'">
+                <div class="feature-icon">📊</div>
+                <h3>Economic Growth</h3>
+                <p>Analyze real economic growth rates over time.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2023 Global Economic Data Dashboard</p>
+    </footer>
+
+    <script src="script.js"></script></div>
+</body>
+</html>

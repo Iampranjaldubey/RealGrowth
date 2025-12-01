@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Price Visualization | Global Economic Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Global Economic Data Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="gdp.html">GDP</a></li>
+                <li><a href="inflation.html">Inflation</a></li>
+                <li><a href="food.html">Food Prices</a></li>
+                <li><a href="population.html">Population</a></li>
+                <li><a href="wages.html">Wages</a></li>
+                <li><a href="debt.html">Debt</a></li>
+                <li><a href="growth.html">Growth</a></li>
+            </ul>
+        </nav>
+    </div>
+        <div id="histogram-chart" class="tab-content active">
+            <h2>Food Price Comparison (Histogram)</h2>
+            <div class="form-group">
+                <label for="country1">Country 1:</label>
+                <select id="country1"></select>
+            </div>
+            <div class="form-group">
+                <label for="country2">Country 2:</label>
+                <select id="country2"></select>
+            </div>
+            <button onclick="loadHistogramData()">Generate Histogram</button>
+            
+            <div class="chart-container">
+                <canvas id="histogramChart"></canvas>
+            </div>
+        </div>
+
+        <div id="line-chart" class="tab-content">
+            <h2>Food Price Trend (Line Chart)</h2>
+            <div class="form-group">
+                <label for="country1_line">Country 1:</label>
+                <select id="country1_line"></select>
+            </div>
+            <div class="form-group">
+                <label for="country2_line">Country 2:</label>
+                <select id="country2_line"></select>
+            </div>
+            <button onclick="loadLineChartData()">Generate Line Chart</button>
+            
+            <div class="chart-container">
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2023 Global Economic Data Dashboard</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        let histogramChart = null;
+        let lineChart = null;
+
+        // Load countries
+        async function loadCountries() {
+            try {
+                const countries = await fetchFoodCountries(); // Use utility function
+                
+                // Populate all dropdowns
+                populateSelect('country1', countries);
+                populateSelect('country2', countries);
+                populateSelect('country1_line', countries);
+                populateSelect('country2_line', countries);
+                
+                // Set default values
+                if (countries.length >= 2) {
+                    document.getElementById('country1').value = countries[0];
+                    document.getElementById('country2').value = countries[1];
+                    document.getElementById('country1_line').value = countries[0];
+                    document.getElementById('country2_line').value = countries[1];
+                    
+                    // Load initial charts
+                    loadHistogramData();
+                    loadLineChartData();
+                }
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        // Load histogram data
+        async function loadHistogramData() {
+            const c1 = document.getElementById('country1').value;
+            const c2 = document.getElementById('country2').value;
+            
+            if (!c1 || !c2) {
+                alert('Please select two countries');
+                return;
+            }
+            
+            try {
+                const data = await fetchFoodHistogramData(c1, c2); // Use utility function
+                const labels = data.map(x => x.Year);
+                const d1 = data.map(x => x[c1]);
+                const d2 = data.map(x => x[c2]);
+                
+                histogramChart = createOrUpdateChart(histogramChart, {
+                    canvasId: 'histogramChart',
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { 
+                                label: c1, 
+                                data: d1, 
+                                backgroundColor: 'rgba(255,99,132,0.6)' 
+                            },
+                            { 
+                                label: c2, 
+                                data: d2, 
+                                backgroundColor: 'rgba(54,162,235,0.6)' 
+                            }
+                        ]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Food Price Comparison: ${c1} vs ${c2}`,
+                                font: { size: 18 }
+                            }
+                        },
+                        scales: { 
+                            y: { 
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Price (USD)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Year'
+                                }
+                            }
+                        } 
+                    }
+                });
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        // Load line chart data
+        async function loadLineChartData() {
+            const c1 = document.getElementById('country1_line').value;
+            const c2 = document.getElementById('country2_line').value;
+            
+            if (!c1 || !c2) {
+                alert('Please select two countries');
+                return;
+            }
+            
+            try {
+                const data = await fetchFoodLineData(c1, c2); // Use utility function
+                const labels = data.map(x => x.Year);
+                const d1 = data.map(x => x[c1]);
+                const d2 = data.map(x => x[c2]);
+                
+                lineChart = createOrUpdateChart(lineChart, {
+                    canvasId: 'lineChart',
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { 
+                                label: c1, 
+                                data: d1, 
+                                borderColor: 'rgba(255,99,132,1)', 
+                                backgroundColor: 'rgba(255,99,132,0.1)',
+                                fill: true,
+                                tension: 0.2
+                            },
+                            { 
+                                label: c2, 
+                                data: d2, 
+                                borderColor: 'rgba(54,162,235,1)', 
+                                backgroundColor: 'rgba(54,162,235,0.1)',
+                                fill: true,
+                                tension: 0.2
+                            }
+                        ]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Food Price Trends: ${c1} vs ${c2}`,
+                                font: { size: 18 }
+                            }
+                        },
+                        scales: { 
+                            y: { 
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Price (USD)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Year'
+                                }
+                            }
+                        } 
+                    }
+                });
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCountries();
+        });
+    </script>
+</body>
+</html>

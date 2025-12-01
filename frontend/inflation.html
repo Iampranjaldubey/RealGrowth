@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inflation Rates | Global Economic Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Global Economic Data Dashboard</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="gdp.html">GDP</a></li>
+                <li><a href="inflation.html">Inflation</a></li>
+                <li><a href="food.html">Food Prices</a></li>
+                <li><a href="population.html">Population</a></li>
+                <li><a href="wages.html">Wages</a></li>
+                <li><a href="debt.html">Debt</a></li>
+                <li><a href="growth.html">Growth</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="container">
+        <h2>Inflation Rate by Country</h2>
+        <p>Explore inflation trends across different countries over time.</p>
+        
+        <div class="select-container">
+            <label for="country">Select Country:</label>
+            <div class="select-wrapper">
+                <select id="country">
+                    <option value="">--Select a Country--</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="inflation-chart"></canvas>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2023 Global Economic Data Dashboard</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        let inflationChart = null;
+        const years = Array.from({length: 15}, (_, i) => 2008 + i);
+        
+        // Load countries
+        async function loadCountries() {
+            try {
+                const data = await fetchInflationCountries(); // Use the utility function
+                populateSelect('country', data.countries, { text: '--Select a Country--', value: '' });
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+        
+        // Load inflation data for a country
+        async function loadInflationData(country) {
+            if (!country) return;
+            
+            try {
+                const data = await fetchInflationData(country); // Use the utility function
+                
+                inflationChart = createOrUpdateChart(inflationChart, {
+                    canvasId: 'inflation-chart',
+                    type: 'line',
+                    data: {
+                        labels: years,
+                        datasets: [{
+                            label: `${country} Inflation Rate (%)`,
+                            data: data.inflation,
+                            borderColor: '#4F46E5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Inflation Rate for ${country} (2008-2022)`,
+                                font: { size: 18 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `Inflation: ${context.parsed.y.toFixed(2)}%`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Year'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Inflation Rate (%)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCountries();
+            
+            // Add event listener for country selection
+            document.getElementById('country').addEventListener('change', function() {
+                loadInflationData(this.value);
+            });
+        });
+    </script>
+</body>
+</html>
