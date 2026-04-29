@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RealGrowth{% endblock %} | Global Economic Dashboard</title>
+    <meta name="description" content="{% block meta_description %}Explore comprehensive economic data from around the world — GDP, inflation, wages, population, and more.{% endblock %}">
+
+    <!-- Styles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}" class="brand">📊 RealGrowth</a>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('page_gdp') }}">GDP</a></li>
+                <li><a href="{{ url_for('page_inflation') }}">Inflation</a></li>
+                <li><a href="{{ url_for('page_food') }}">Food Prices</a></li>
+                <li><a href="{{ url_for('page_population') }}">Population</a></li>
+                <li><a href="{{ url_for('page_wages') }}">Wages</a></li>
+                <li><a href="{{ url_for('page_debt') }}">Debt</a></li>
+                <li><a href="{{ url_for('page_growth') }}">Growth</a></li>
+            </ul>
+        </nav>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 RealGrowth — Global Economic Data Dashboard</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

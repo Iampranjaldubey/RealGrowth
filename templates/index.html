@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+{% block meta_description %}RealGrowth — explore GDP, inflation, wages, population, food prices, debt, and economic
+growth data across countries.{% endblock %}
+
+{% block content %}
+<section class="welcome-section">
+    <h2>Global Economic Data Dashboard</h2>
+    <p>Explore comprehensive economic data from around the world. Select a category below to view detailed
+        visualizations and comparisons.</p>
+</section>
+
+<div class="feature-grid">
+    <a href="{{ url_for('page_gdp') }}" class="feature-card" style="text-decoration:none;color:inherit">
+        <div class="icon">📈</div>
+        <h3>GDP Per Capita</h3>
+        <p>Compare GDP per capita across different countries and years.</p>
+    </a>
+    <a href="{{ url_for('page_inflation') }}" class="feature-card" style="text-decoration:none;color:inherit">
+        <div class="icon">💹</div>
+        <h3>Inflation Rates</h3>
+        <p>Analyze inflation trends across different economies.</p>
+    </a>
+    <a href="{{ url_for('page_food') }}" class="feature-card" style="text-decoration:none;color:inherit">
+        <div class="icon">🍲</div>
+        <h3>Food Prices</h3>
+        <p>Explore the cost of healthy diets around the world.</p>
+    </a>
+    <a href="{{ url_for('page_population') }}" class="feature-card" style="text-decoration:none;color:inherit">
+        <div class="icon">👥</div>
+        <h3>Population</h3>
+        <p>Compare urban and rural population distributions.</p>
+    </a>
+    <a href="{{ url_for('page_wages') }}" class="feature-card" style="text-decoration:none;color:inherit">
+        <div class="icon">💰</div>
+        <h3>Average Wages</h3>
+        <p>Track wage trends across different countries.</p>
+    </a>
+    <a href="{{ url_for('page_debt') }}" class="feature-card" style="text-decoration:none;color:inherit">
+        <div class="icon">🏦</div>
+        <h3>Debt to GDP</h3>
+        <p>Visualize debt-to-GDP ratios on a global map.</p>
+    </a>
+    <a href="{{ url_for('page_growth') }}" class="feature-card" style="text-decoration:none;color:inherit">
+        <div class="icon">📊</div>
+        <h3>Economic Growth</h3>
+        <p>Analyze real economic growth rates over time.</p>
+    </a>
+</div>
+{% endblock %}

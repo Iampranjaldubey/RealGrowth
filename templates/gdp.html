@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}GDP Per Capita{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>GDP Per Capita</h2>
+    <p>Compare GDP per capita across different countries and time periods.</p>
+</div>
+
+<div class="card">
+    <div class="chart-tabs">
+        <button class="tab-button active" data-tab="bar-chart">Top 10 GDP</button>
+        <button class="tab-button" data-tab="comparison-chart">Country Comparison</button>
+    </div>
+
+    <!-- Top 10 Bar Chart Tab -->
+    <div id="bar-chart" class="tab-content active">
+        <form id="gdpForm" class="controls">
+            <div class="form-group">
+                <label for="year">Year</label>
+                <select id="year" name="year"></select>
+            </div>
+            <div class="form-group">
+                <label for="population">Minimum Population</label>
+                <select id="population" name="population">
+                    <option value="0">All Countries</option>
+                    <option value="100000000">≥ 100 Million</option>
+                    <option value="500000000">≥ 500 Million</option>
+                    <option value="1000000000">≥ 1 Billion</option>
+                </select>
+            </div>
+            <button type="submit">Apply</button>
+        </form>
+        <div class="chart-container">
+            <canvas id="gdpChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Comparison Tab -->
+    <div id="comparison-chart" class="tab-content">
+        <div class="controls">
+            <div class="form-group">
+                <label for="country1">First Country</label>
+                <select id="country1"></select>
+            </div>
+            <div class="form-group">
+                <label for="country2">Second Country</label>
+                <select id="country2"></select>
+            </div>
+            <button id="compareBtn" type="button">Compare</button>
+        </div>
+        <div class="chart-container">
+            <canvas id="comparisonChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/pages/gdp.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Average Wages{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Average Wages by Country</h2>
+    <p>Explore average wage trends across different countries over time.</p>
+</div>
+
+<div class="card">
+    <div class="controls">
+        <div class="form-group">
+            <label for="countrySelect">Select Country</label>
+            <select id="countrySelect">
+                <option value="">-- Select a Country --</option>
+            </select>
+        </div>
+    </div>
+    <div class="chart-container">
+        <canvas id="wagesChart"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/pages/wages.js') }}"></script>
+{% endblock %}
