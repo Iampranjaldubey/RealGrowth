@@ -1,28 +1,49 @@
+
 """Application configuration."""
+
 import os
 
 
 class Config:
-    """Base configuration."""
+    """Base application configuration."""
+
+    # Absolute path to the backend directory
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DATA_DIR = os.path.join(BASE_DIR, 'data')
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
+
+    # Absolute path to the CSV data directory
+    DATA_DIR = os.path.join(BASE_DIR, "data")
+
+    # CORS configuration
+    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
+
+    # Application mode
     DEBUG = False
 
 
 class DevelopmentConfig(Config):
     """Development configuration."""
+
     DEBUG = True
+    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
 
 
 class ProductionConfig(Config):
     """Production configuration."""
+
     DEBUG = False
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'https://yourdomain.com')
+
+    # Set this environment variable in Docker/production
+    # Example:
+    # CORS_ORIGINS=https://your-frontend-domain.com
+    CORS_ORIGINS = os.environ.get(
+        "CORS_ORIGINS",
+        "*"
+    )
 
 
 config_by_name = {
-    'development': DevelopmentConfig,
-    'production': ProductionConfig,
-    'default': DevelopmentConfig
+    "development": DevelopmentConfig,
+    "production": ProductionConfig,
+    "default": DevelopmentConfig,
 }
+
