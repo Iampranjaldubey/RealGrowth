@@ -1,34 +1,26 @@
-# Python
+# Virtual Environment
+venv/
+env/
+.env
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-*.egg-info/
+
+# Node / React
+node_modules/
 dist/
 build/
-*.egg
+.DS_Store
 
-# Virtual environment
-venv/
-env/
-.venv/
-
-# Environment files
-.env
-
-# IDE
+# IDEs
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Jupyter
-.ipynb_checkpoints/
 
 # Logs
 *.log
+npm-debug.log*
+
+# Coverage / Testing
+.coverage
+htmlcov/
+.pytest_cache/

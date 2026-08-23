@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GDP Per Capita | Global Economic Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="navbar">
+    <h1>Global Economic Data Dashboard</h1>
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="gdp.html">GDP</a></li>
+            <li><a href="inflation.html">Inflation</a></li>
+            <li><a href="food.html">Food Prices</a></li>
+            <li><a href="population.html">Population</a></li>
+            <li><a href="wages.html">Wages</a></li>
+            <li><a href="debt.html">Debt</a></li>
+            <li><a href="growth.html">Growth</a></li>
+        </ul>
+    </nav>
+</div>
+
+  <div class="container">
+    <div class="chart-tabs">
+      <button class="tab-button active" data-tab="bar-chart">Top 10 GDP</button>
+      <button class="tab-button" data-tab="comparison-chart">Country Comparison</button>
+    </div>
+
+    <div id="bar-chart" class="tab-content active">
+      <form id="gdpForm">
+        <div class="form-group">
+          <label for="year">Year:</label>
+          <select id="year" name="year"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="population">Population:</label>
+          <select id="population" name="population">
+            <option value="0">All</option>
+            <option value="100000000">≥ 10 Crore</option>
+            <option value="500000000">≥ 50 Crore</option>
+            <option value="1000000000">≥ 100 Crore</option>
+          </select>
+        </div>
+
+        <button type="submit">Submit</button>
+      </form>
+
+      <div class="chart-container">
+        <canvas id="gdpChart"></canvas>
+      </div>
+    </div>
+
+    <div id="comparison-chart" class="tab-content">
+      <div class="comparison-form">
+        <div class="form-group">
+          <label for="country1">First Country:</label>
+          <select id="country1" name="country1"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="country2">Second Country:</label>
+          <select id="country2" name="country2"></select>
+        </div>
+
+        <button id="compareBtn" type="button">Compare</button>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="comparisonChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2023 Global Economic Data Dashboard</p>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    // Global chart variables
+    let gdpChart = null;
+    let comparisonChart = null;
+
+    // Create GDP Bar Chart
+    function createGdpChart(labels, data) {
+      gdpChart = createOrUpdateChart(gdpChart, {
+        canvasId: 'gdpChart',
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'GDP Per Capita (USD)',
+            data: data,
+            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            title: {
+              display: true,
+              text: 'Top 10 Countries by GDP Per Capita',
+              font: { size: 18 }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return 'GDP Per Capita: $' + context.parsed.x.toLocaleString();
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'GDP Per Capita (USD)'
+              },
+              ticks: {
+                callback: function(value) {
+                  return '$' + value.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Load years and countries
+    async function loadInitialData() {
+        try {
+            const data = await fetchGDPData('2023', 0);
+            
+            // Check if years exists in the response
+            if (data.years && Array.isArray(data.years)) {
+                // Populate year dropdown
+                populateSelect('year', data.years);
+                
+                // Set the selected year
+                if (data.selected_year) {
+                    document.getElementById('year').value = data.selected_year;
+                }
+            } else {
+                console.error('Expected years array in API response');
+            }
+            
+            // Create initial chart
+            if (data.chart_labels && data.chart_data) {
+                createGdpChart(data.chart_labels, data.chart_data);
+            }
+            
+            // Load countries for comparison
+            try {
+                const countries = await fetchGDPCountries();
+                
+                if (Array.isArray(countries)) {
+                    populateSelect('country1', countries);
+                    populateSelect('country2', countries);
+                    
+                    // Set default selections
+                    if (countries.length >= 2) {
+                        document.getElementById('country1').value = countries[0];
+                        document.getElementById('country2').value = countries[1];
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading countries:', error);
+            }
+        } catch (error) {
+            handleApiError(error);
+        }
+    }
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize tab logic
+      const tabButtons = document.querySelectorAll('.tab-button');
+      if (tabButtons.length > 0) {
+          tabButtons.forEach(button => {
+              button.addEventListener('click', () => {
+                  const tabId = button.dataset.tab;
+                  showTab(tabId);
+              });
+          });
+      }
+      
+      // Load initial data
+      loadInitialData();
+      
+      // GDP form submission
+      document.getElementById('gdpForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const year = document.getElementById('year').value;
+        const population = document.getElementById('population').value;
+        
+        try {
+            const data = await fetchGDPData(year, population);
+            createGdpChart(data.chart_labels, data.chart_data);
+        } catch (error) {
+            handleApiError(error);
+        }
+      });
+      
+      // Comparison button click
+      document.getElementById('compareBtn').addEventListener('click', async function() {
+        const country1 = document.getElementById('country1').value;
+        const country2 = document.getElementById('country2').value;
+        
+        if (country1 && country2) {
+          try {
+            await createComparisonChart(country1, country2);
+          } catch (error) {
+            handleApiError(error);
+          }
+        } else {
+          alert('Please select two countries to compare');
+        }
+      });
+      
+    //   // Debug country selection
+    //   document.getElementById('country1').addEventListener('change', function() {
+    //     console.log('Country 1 selected:', this.value);
+    //   });
+      
+    //   document.getElementById('country2').addEventListener('change', function() {
+    //     console.log('Country 2 selected:', this.value);
+    //   });
+    // Function to create the GDP comparison chart
+async function createComparisonChart(country1, country2) {
+  try {
+    // Fetch comparison data from API
+    const result = await fetch(`${API_BASE_URL}/gdp/compare?country1=${country1}&country2=${country2}`);
+    const data = await result.json();
+    
+    if (data.error) {
+      alert(`Error: ${data.error}`);
+      return;
+    }
+    
+    // Prepare datasets for chart
+    const datasets = [
+      {
+        label: data.country1.name,
+        data: data.country1.data,
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 2,
+        fill: false,
+        tension: 0.1
+      },
+      {
+        label: data.country2.name,
+        data: data.country2.data,
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderWidth: 2,
+        fill: false,
+        tension: 0.1
+      }
+    ];
+    
+    // Create or update the comparison chart
+    comparisonChart = createOrUpdateChart(comparisonChart, {
+      canvasId: 'comparisonChart',
+      type: 'line',
+      data: {
+        labels: data.years,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: `GDP Per Capita Comparison: ${country1} vs ${country2}`,
+            font: { size: 16 }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            title: {
+              display: true,
+              text: 'GDP Per Capita (USD)'
+            },
+            ticks: {
+              callback: function(value) {
+                return '$' + value.toLocaleString();
+              }
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Year'
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error creating comparison chart:', error);
+    alert('Failed to load comparison data. Please try again.');
+  }
+}
+    });
+  </script>
+</body>
+</html>
