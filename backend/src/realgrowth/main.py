@@ -6,10 +6,11 @@ Run with: ``uvicorn realgrowth.main:app`` (see backend/Dockerfile).
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from typing import cast
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -22,6 +23,11 @@ from realgrowth.config import get_settings
 from realgrowth.db import pool
 
 logger = logging.getLogger(__name__)
+
+#: slowapi's bundled handler is typed for RateLimitExceeded specifically, which
+#: is narrower than the Exception-handler signature FastAPI expects; casting
+#: here is what slowapi's own documented usage does.
+ExceptionHandler = Callable[[Request, Exception], Response | Awaitable[Response]]
 
 
 def create_limiter() -> Limiter:
@@ -62,7 +68,9 @@ def create_app() -> FastAPI:
 
     limiter = create_limiter()
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_exception_handler(
+        RateLimitExceeded, cast(ExceptionHandler, _rate_limit_exceeded_handler)
+    )
 
     app.add_middleware(
         CORSMiddleware,
