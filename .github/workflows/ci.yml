@@ -86,10 +86,15 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: frontend/package.json
 
       - name: Install dependencies
-        run: npm ci
+        # No committed lockfile: the sandbox this project was rebuilt in has no
+        # registry access, so the lockfile is generated here instead of being
+        # hand-maintained out of sync with reality. `npm install` also fixes
+        # up any peer-dependency drift (see vite.config.ts's manualChunks
+        # comment) that a stale `npm ci` would silently mask.
+        run: npm install
 
       - name: Lint
         run: npm run lint

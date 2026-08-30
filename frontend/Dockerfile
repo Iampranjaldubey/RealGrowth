@@ -3,10 +3,14 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json ./
 
-# Use legacy-peer-deps to avoid conflicting React versions for the map library
-RUN npm ci --legacy-peer-deps
+# No lockfile is committed (see package.json comment); `npm install` resolves
+# fresh. Every remaining dependency (react-router-dom, TanStack Query,
+# chart.js) declares real React 19 peer support, so no --legacy-peer-deps
+# escape hatch is needed — the previous Dockerfile needed it only because of
+# react-simple-maps, which this rebuild replaced (see RankList.tsx).
+RUN npm install
 
 COPY . .
 

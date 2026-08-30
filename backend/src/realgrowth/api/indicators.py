@@ -77,4 +77,4 @@ def get_snapshot(
         order=order,
         limit=limit,
     )
-    return {"indicator": indicator, **snapshot}
+    return {"indicator": indicator, "year": snapshot["year"], "values": snapshot["values"]}
