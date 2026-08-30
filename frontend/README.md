@@ -1,7 +1,7 @@
 # RealGrowth frontend
 
 React 19 + TypeScript SPA for the RealGrowth API. See the [root README](../README.md) for the
-full project overview, architecture and screenshots.
+full project overview and architecture.
 
 ## Stack
 
