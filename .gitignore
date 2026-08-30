@@ -33,3 +33,5 @@ data/*.db
 data/*.db-wal
 data/*.db-shm
 data/quality-report.json
+data/quality_report.json
+*.tsbuildinfo
