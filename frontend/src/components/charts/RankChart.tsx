@@ -27,7 +27,13 @@ export function RankChart({ values, valueFormatter, limit = 10 }: RankChartProps
             },
           ],
         }}
-        options={baseOptions<"bar">({ valueFormatter, showLegend: false, indexAxis: "y" })}
+        options={baseOptions<"bar">({
+          valueFormatter,
+          showLegend: false,
+          indexAxis: "y",
+          interactionMode: "nearest",
+          intersect: true,
+        })}
       />
     </div>
   );

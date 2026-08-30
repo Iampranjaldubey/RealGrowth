@@ -94,7 +94,9 @@ export function IndicatorExplorerPage() {
             loading={snapshot.isLoading}
             error={snapshot.error?.message}
           >
-            {snapshot.data && <RankChart values={snapshot.data.values} valueFormatter={formatter} />}
+            {snapshot.data && (
+              <RankChart values={snapshot.data.values} valueFormatter={formatter} limit={15} />
+            )}
           </ChartCard>
         </>
       )}

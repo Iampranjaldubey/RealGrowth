@@ -55,6 +55,25 @@ interface BaseOptionsArgs {
   valueFormatter?: (value: number) => string;
   showLegend?: boolean;
   indexAxis?: "x" | "y";
+  /** Chart.js interaction mode. Defaults to "index" for line-style charts;
+   * ranked bar charts pass "nearest" so a tooltip maps to the bar under the
+   * pointer, not the nearest index in empty space. */
+  interactionMode?: "index" | "nearest" | "point";
+  /** Whether the pointer must be directly over an element. Defaults to false
+   * (good for line charts); bar charts pass true. */
+  intersect?: boolean;
+}
+
+/** Ticks config for a value axis: formats numbers via `valueFormatter`.
+ * A category axis gets no `callback` at all — setting `callback: undefined`
+ * explicitly overrides Chart.js's default label renderer and makes the axis
+ * print raw tick indices (0, 1, 2, …) instead of the category labels. */
+function axisTicks(isValueAxis: boolean, valueFormatter?: (value: number) => string) {
+  const ticks: Record<string, unknown> = { font: { size: 11 } };
+  if (isValueAxis && valueFormatter) {
+    ticks.callback = (value: string | number) => valueFormatter(Number(value));
+  }
+  return ticks;
 }
 
 /** The tooltip callback fields common to every chart type this app uses. */
@@ -78,12 +97,16 @@ export function baseOptions<TType extends "line" | "bar" = "line" | "bar">({
   valueFormatter,
   showLegend = true,
   indexAxis = "x",
+  interactionMode = "index",
+  intersect = false,
 }: BaseOptionsArgs = {}): ChartOptions<TType> {
+  // For a horizontal bar (indexAxis "y") the value axis is x; otherwise it's y.
+  const valueAxisIsX = indexAxis === "y";
   const options: Record<string, unknown> = {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis,
-    interaction: { mode: "index", intersect: false },
+    interaction: { mode: interactionMode, intersect },
     plugins: {
       legend: {
         display: showLegend,
@@ -113,23 +136,11 @@ export function baseOptions<TType extends "line" | "bar" = "line" | "bar">({
     scales: {
       x: {
         grid: { color: "rgba(255, 255, 255, 0.05)" },
-        ticks: {
-          font: { size: 11 },
-          callback:
-            indexAxis === "y" && valueFormatter
-              ? (value: string | number) => valueFormatter(Number(value))
-              : undefined,
-        },
+        ticks: axisTicks(valueAxisIsX, valueFormatter),
       },
       y: {
         grid: { color: "rgba(255, 255, 255, 0.05)" },
-        ticks: {
-          font: { size: 11 },
-          callback:
-            indexAxis === "x" && valueFormatter
-              ? (value: string | number) => valueFormatter(Number(value))
-              : undefined,
-        },
+        ticks: axisTicks(!valueAxisIsX, valueFormatter),
       },
     },
   };
