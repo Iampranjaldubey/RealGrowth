@@ -86,7 +86,7 @@ export function baseOptions({
               label: (context) => {
                 const label = context.dataset.label ? `${context.dataset.label}: ` : "";
                 const raw = indexAxis === "y" ? context.parsed.x : context.parsed.y;
-                return `${label}${valueFormatter(raw)}`;
+                return `${label}${valueFormatter(raw ?? 0)}`;
               },
             }
           : undefined,

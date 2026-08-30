@@ -1,20 +1,22 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError } from "./client";
 
-const originalFetch = global.fetch;
+const originalFetch = globalThis.fetch;
+
+function mockFetch(response: unknown): ReturnType<typeof vi.fn> {
+  const fetchMock = vi.fn().mockResolvedValue(response);
+  globalThis.fetch = fetchMock as unknown as typeof fetch;
+  return fetchMock;
+}
 
 describe("api client", () => {
   afterEach(() => {
-    global.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
   });
 
   it("escapes path segments so special characters can't break the URL", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: "x" }),
-    });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockFetch({ ok: true, json: async () => ({ id: "x" }) });
 
     await api.getIndicator("weird/id?x=1");
 
@@ -25,10 +27,9 @@ describe("api client", () => {
   });
 
   it("omits undefined/null/empty query parameters", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ series: [] }) });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockFetch({ ok: true, json: async () => ({ series: [] }) });
 
-    await api.getSeries("gdp_per_capita", ["USA"], { startYear: undefined, endYear: undefined });
+    await api.getSeries("gdp_per_capita", ["USA"], {});
 
     const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
     expect(calledUrl).not.toContain("start_year");
@@ -37,13 +38,12 @@ describe("api client", () => {
   });
 
   it("throws a typed ApiError carrying the backend error contract", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
+    mockFetch({
       ok: false,
       status: 404,
       statusText: "Not Found",
       json: async () => ({ error: "Not found", detail: "unknown country: ZZZ", status: 404 }),
     });
-    global.fetch = fetchMock as unknown as typeof fetch;
 
     await expect(api.getCountryProfile("ZZZ")).rejects.toMatchObject({
       name: "ApiError",
@@ -57,16 +57,9 @@ describe("api client", () => {
     expect(error).toBeInstanceOf(Error);
     expect(error.message).toBe("boom");
   });
-});
-
-describe("BASE_URL fallback", () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
 
   it("requests are made relative to /api by default in tests", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockFetch({ ok: true, json: async () => [] });
     await api.listIndicators();
     const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
     expect(calledUrl.startsWith("/api")).toBe(true);
