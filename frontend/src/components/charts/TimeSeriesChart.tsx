@@ -41,7 +41,7 @@ export function TimeSeriesChart({ series, valueFormatter, showLegend = true }: T
     <div className="chart-wrapper">
       <Line
         data={{ labels: years, datasets }}
-        options={baseOptions({ valueFormatter, showLegend })}
+        options={baseOptions<"line">({ valueFormatter, showLegend })}
       />
     </div>
   );

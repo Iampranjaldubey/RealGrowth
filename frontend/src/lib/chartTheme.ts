@@ -57,11 +57,19 @@ interface BaseOptionsArgs {
   indexAxis?: "x" | "y";
 }
 
-export function baseOptions({
+/**
+ * Generic over the chart type because Chart.js's `ChartOptions<T>` is not
+ * structurally assignable between different `T`s (a known upstream
+ * limitation — the callback signatures embed the type parameter). Callers
+ * pass their own type, e.g. `baseOptions<"bar">(...)`, so the returned shape
+ * lines up with what `<Bar>`/`<Line>` expect without an `as` cast at every
+ * call site.
+ */
+export function baseOptions<TType extends "line" | "bar" = "line" | "bar">({
   valueFormatter,
   showLegend = true,
   indexAxis = "x",
-}: BaseOptionsArgs = {}): ChartOptions<"line" | "bar"> {
+}: BaseOptionsArgs = {}): ChartOptions<TType> {
   return {
     responsive: true,
     maintainAspectRatio: false,
