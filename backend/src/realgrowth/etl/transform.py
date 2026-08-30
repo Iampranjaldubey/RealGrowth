@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import NamedTuple
 
 from realgrowth.etl.registry import CountryRegistry
-from realgrowth.etl.sources import YEAR_HEADER, Indicator, SourceSpec
+from realgrowth.etl.sources import YEAR_HEADER, Indicator
+from realgrowth.etl.sources import SourceSpec as SourceSpec  # re-exported: tests build ad-hoc specs
 
 #: Tokens vendors use to mean "no observation".
 NULL_TOKENS = frozenset({"", "..", "...", "-", "–", "n/a", "na", "nan", "null", "none"})

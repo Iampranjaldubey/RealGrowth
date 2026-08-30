@@ -67,9 +67,7 @@ def is_implausible_growth(growth: float, inflation: float | None) -> bool:
     """
     if abs(growth) <= IMPLAUSIBLE_GROWTH_PCT:
         return False
-    if inflation is not None and abs(inflation) >= INFLATION_EXPLAINS_PCT:
-        return False
-    return True
+    return inflation is None or abs(inflation) < INFLATION_EXPLAINS_PCT
 
 
 def _emit(

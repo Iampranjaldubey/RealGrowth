@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Iterable, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from realgrowth.etl.registry import CountryRegistry
@@ -220,4 +220,4 @@ def get_metadata(connection: sqlite3.Connection, key: str) -> str | None:
 
 
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return datetime.now(UTC).replace(microsecond=0).isoformat()
