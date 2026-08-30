@@ -9,13 +9,14 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 # ---- build: create the SQLite warehouse from the raw CSVs -----------------
 # Building the database in the image means the running container never
 # depends on pandas or a build toolchain, and the ETL is reproducible from the
-# same source tree that gets deployed.
+# same source tree that gets deployed. The ETL itself is stdlib-only, so this
+# stage needs no pip install at all.
 FROM python:3.11-slim AS build
 WORKDIR /build
 COPY backend/src ./backend/src
 COPY data/raw ./data/raw
 COPY data/reference ./data/reference
-RUN python backend/src/realgrowth/etl/__main__.py \
+RUN PYTHONPATH=backend/src python -m realgrowth.etl \
         --raw-dir data/raw \
         --reference data/reference/countries.csv \
         --output data/realgrowth.db \

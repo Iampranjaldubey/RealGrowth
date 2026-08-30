@@ -15,21 +15,31 @@ import pytest
 fastapi = pytest.importorskip("fastapi")
 httpx = pytest.importorskip("httpx")
 
+from collections.abc import Iterator  # noqa: E402
+
 from fastapi.testclient import TestClient  # noqa: E402
 
-from realgrowth.db import pool  # noqa: E402
+from realgrowth.config import get_settings  # noqa: E402
 from realgrowth.main import create_app  # noqa: E402
 
 
 @pytest.fixture
-def client(real_warehouse: Path) -> TestClient:
-    pool.open(real_warehouse)
+def client(real_warehouse: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """A TestClient wired to the session's real warehouse, not the repo default.
+
+    ``create_app``'s lifespan opens ``get_settings().database_path``, so the
+    fixture points that setting at the session-built warehouse rather than
+    opening the connection pool itself and having the app's startup hook
+    silently overwrite it with the (non-existent, in CI) default path.
+    """
+    monkeypatch.setenv("REALGROWTH_DATABASE_PATH", str(real_warehouse))
+    get_settings.cache_clear()
     app = create_app()
     try:
         with TestClient(app) as test_client:
             yield test_client
     finally:
-        pool.close()
+        get_settings.cache_clear()
 
 
 class TestHealth:
