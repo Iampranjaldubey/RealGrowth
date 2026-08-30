@@ -24,3 +24,9 @@ npm-debug.log*
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Build artefacts
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/quality-report.json

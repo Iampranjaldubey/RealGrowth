@@ -1,0 +1,243 @@
+iso3,name,region,is_aggregate,aliases
+ABW,Aruba,Latin America & Caribbean,0,
+AFG,Afghanistan,South Asia,0,
+AGO,Angola,Sub-Saharan Africa,0,
+ALB,Albania,Europe & Central Asia,0,
+AND,Andorra,Europe & Central Asia,0,
+ARE,United Arab Emirates,Middle East & North Africa,0,UAE
+ARG,Argentina,Latin America & Caribbean,0,
+ARM,Armenia,Europe & Central Asia,0,
+ASM,American Samoa,East Asia & Pacific,0,
+ATG,Antigua and Barbuda,Latin America & Caribbean,0,Antigua And Barbuda
+AUS,Australia,East Asia & Pacific,0,
+AUT,Austria,Europe & Central Asia,0,
+AZE,Azerbaijan,Europe & Central Asia,0,
+BDI,Burundi,Sub-Saharan Africa,0,
+BEL,Belgium,Europe & Central Asia,0,
+BEN,Benin,Sub-Saharan Africa,0,
+BFA,Burkina Faso,Sub-Saharan Africa,0,
+BGD,Bangladesh,South Asia,0,
+BGR,Bulgaria,Europe & Central Asia,0,
+BHR,Bahrain,Middle East & North Africa,0,
+BHS,Bahamas,Latin America & Caribbean,0,"Bahamas, The"
+BIH,Bosnia and Herzegovina,Europe & Central Asia,0,Bosnia
+BLR,Belarus,Europe & Central Asia,0,
+BLZ,Belize,Latin America & Caribbean,0,
+BMU,Bermuda,North America,0,
+BOL,Bolivia,Latin America & Caribbean,0,
+BRA,Brazil,Latin America & Caribbean,0,
+BRB,Barbados,Latin America & Caribbean,0,
+BRN,Brunei,East Asia & Pacific,0,Brunei Darussalam
+BTN,Bhutan,South Asia,0,
+BWA,Botswana,Sub-Saharan Africa,0,
+CAF,Central African Republic,Sub-Saharan Africa,0,
+CAN,Canada,North America,0,
+CHE,Switzerland,Europe & Central Asia,0,
+CHI,Channel Islands,Europe & Central Asia,0,
+CHL,Chile,Latin America & Caribbean,0,
+CHN,China,East Asia & Pacific,0,
+CIV,Cote d'Ivoire,Sub-Saharan Africa,0,
+CMR,Cameroon,Sub-Saharan Africa,0,
+COD,Democratic Republic of Congo,Sub-Saharan Africa,0,"Congo, Dem. Rep.|Democratic Republic Of Congo"
+COG,Congo,Sub-Saharan Africa,0,"Congo, Rep.|Republic Of Congo"
+COL,Colombia,Latin America & Caribbean,0,
+COM,Comoros,Sub-Saharan Africa,0,
+CPV,Cape Verde,Sub-Saharan Africa,0,Cabo Verde
+CRI,Costa Rica,Latin America & Caribbean,0,
+CUB,Cuba,Latin America & Caribbean,0,
+CUW,Curacao,Latin America & Caribbean,0,
+CYM,Cayman Islands,Latin America & Caribbean,0,
+CYP,Cyprus,Europe & Central Asia,0,
+CZE,Czechia,Europe & Central Asia,0,Czech Republic
+DEU,Germany,Europe & Central Asia,0,
+DJI,Djibouti,Middle East & North Africa,0,
+DMA,Dominica,Latin America & Caribbean,0,
+DNK,Denmark,Europe & Central Asia,0,
+DOM,Dominican Republic,Latin America & Caribbean,0,
+DZA,Algeria,Middle East & North Africa,0,
+ECU,Ecuador,Latin America & Caribbean,0,
+EGY,Egypt,Middle East & North Africa,0,"Egypt, Arab Rep."
+ERI,Eritrea,Sub-Saharan Africa,0,
+ESP,Spain,Europe & Central Asia,0,
+EST,Estonia,Europe & Central Asia,0,
+ETH,Ethiopia,Sub-Saharan Africa,0,
+FIN,Finland,Europe & Central Asia,0,
+FJI,Fiji,East Asia & Pacific,0,
+FRA,France,Europe & Central Asia,0,
+FRO,Faroe Islands,Europe & Central Asia,0,
+FSM,Micronesia,East Asia & Pacific,0,"Micronesia (country)|Micronesia, Fed. Sts."
+GAB,Gabon,Sub-Saharan Africa,0,
+GBR,United Kingdom,Europe & Central Asia,0,
+GEO,Georgia,Europe & Central Asia,0,
+GHA,Ghana,Sub-Saharan Africa,0,
+GIB,Gibraltar,Europe & Central Asia,0,
+GIN,Guinea,Sub-Saharan Africa,0,
+GMB,Gambia,Sub-Saharan Africa,0,"Gambia, The"
+GNB,Guinea-Bissau,Sub-Saharan Africa,0,
+GNQ,Equatorial Guinea,Sub-Saharan Africa,0,
+GRC,Greece,Europe & Central Asia,0,
+GRD,Grenada,Latin America & Caribbean,0,
+GRL,Greenland,Europe & Central Asia,0,
+GTM,Guatemala,Latin America & Caribbean,0,
+GUM,Guam,East Asia & Pacific,0,
+GUY,Guyana,Latin America & Caribbean,0,
+HKG,Hong Kong,East Asia & Pacific,0,"Hong Kong (China)|Hong Kong SAR, China"
+HND,Honduras,Latin America & Caribbean,0,
+HRV,Croatia,Europe & Central Asia,0,
+HTI,Haiti,Latin America & Caribbean,0,
+HUN,Hungary,Europe & Central Asia,0,
+IDN,Indonesia,East Asia & Pacific,0,
+IMN,Isle of Man,Europe & Central Asia,0,Isle Of Man
+IND,India,South Asia,0,
+IRL,Ireland,Europe & Central Asia,0,
+IRN,Iran,Middle East & North Africa,0,"Iran, Islamic Rep."
+IRQ,Iraq,Middle East & North Africa,0,
+ISL,Iceland,Europe & Central Asia,0,
+ISR,Israel,Middle East & North Africa,0,
+ITA,Italy,Europe & Central Asia,0,
+JAM,Jamaica,Latin America & Caribbean,0,
+JOR,Jordan,Middle East & North Africa,0,
+JPN,Japan,East Asia & Pacific,0,
+KAZ,Kazakhstan,Europe & Central Asia,0,
+KEN,Kenya,Sub-Saharan Africa,0,
+KGZ,Kyrgyzstan,Europe & Central Asia,0,Kyrgyz Republic
+KHM,Cambodia,East Asia & Pacific,0,
+KIR,Kiribati,East Asia & Pacific,0,
+KNA,Saint Kitts and Nevis,Latin America & Caribbean,0,St. Kitts And Nevis|St. Kitts and Nevis
+KOR,South Korea,East Asia & Pacific,0,"Korea, Rep."
+KWT,Kuwait,Middle East & North Africa,0,
+LAO,Laos,East Asia & Pacific,0,Lao PDR
+LBN,Lebanon,Middle East & North Africa,0,
+LBR,Liberia,Sub-Saharan Africa,0,
+LBY,Libya,Middle East & North Africa,0,
+LCA,Saint Lucia,Latin America & Caribbean,0,St. Lucia
+LIE,Liechtenstein,Europe & Central Asia,0,
+LKA,Sri Lanka,South Asia,0,
+LSO,Lesotho,Sub-Saharan Africa,0,
+LTU,Lithuania,Europe & Central Asia,0,
+LUX,Luxembourg,Europe & Central Asia,0,
+LVA,Latvia,Europe & Central Asia,0,
+MAC,Macao,East Asia & Pacific,0,"Macao SAR, China"
+MAF,Saint Martin (French part),Latin America & Caribbean,0,St. Martin (French part)
+MAR,Morocco,Middle East & North Africa,0,
+MCO,Monaco,Europe & Central Asia,0,
+MDA,Moldova,Europe & Central Asia,0,
+MDG,Madagascar,Sub-Saharan Africa,0,
+MDV,Maldives,South Asia,0,
+MEX,Mexico,Latin America & Caribbean,0,
+MHL,Marshall Islands,East Asia & Pacific,0,
+MKD,North Macedonia,Europe & Central Asia,0,
+MLI,Mali,Sub-Saharan Africa,0,
+MLT,Malta,Europe & Central Asia,0,
+MMR,Myanmar,East Asia & Pacific,0,
+MNE,Montenegro,Europe & Central Asia,0,
+MNG,Mongolia,East Asia & Pacific,0,
+MNP,Northern Mariana Islands,East Asia & Pacific,0,
+MOZ,Mozambique,Sub-Saharan Africa,0,
+MRT,Mauritania,Sub-Saharan Africa,0,
+MUS,Mauritius,Sub-Saharan Africa,0,
+MWI,Malawi,Sub-Saharan Africa,0,
+MYS,Malaysia,East Asia & Pacific,0,
+NAM,Namibia,Sub-Saharan Africa,0,
+NCL,New Caledonia,East Asia & Pacific,0,
+NER,Niger,Sub-Saharan Africa,0,
+NGA,Nigeria,Sub-Saharan Africa,0,
+NIC,Nicaragua,Latin America & Caribbean,0,
+NLD,Netherlands,Europe & Central Asia,0,
+NOR,Norway,Europe & Central Asia,0,
+NPL,Nepal,South Asia,0,
+NRU,Nauru,East Asia & Pacific,0,
+NZL,New Zealand,East Asia & Pacific,0,
+OMN,Oman,Middle East & North Africa,0,
+PAK,Pakistan,South Asia,0,
+PAN,Panama,Latin America & Caribbean,0,
+PER,Peru,Latin America & Caribbean,0,
+PHL,Philippines,East Asia & Pacific,0,
+PLW,Palau,East Asia & Pacific,0,
+PNG,Papua New Guinea,East Asia & Pacific,0,
+POL,Poland,Europe & Central Asia,0,
+PRI,Puerto Rico,Latin America & Caribbean,0,
+PRK,North Korea,East Asia & Pacific,0,"Korea, Dem. People's Rep."
+PRT,Portugal,Europe & Central Asia,0,
+PRY,Paraguay,Latin America & Caribbean,0,
+PSE,Palestine,Middle East & North Africa,0,West Bank And Gaza|West Bank and Gaza
+PYF,French Polynesia,East Asia & Pacific,0,
+QAT,Qatar,Middle East & North Africa,0,
+ROU,Romania,Europe & Central Asia,0,
+RUS,Russia,Europe & Central Asia,0,Russian Federation
+RWA,Rwanda,Sub-Saharan Africa,0,
+SAU,Saudi Arabia,Middle East & North Africa,0,
+SDN,Sudan,Sub-Saharan Africa,0,
+SEN,Senegal,Sub-Saharan Africa,0,
+SGP,Singapore,East Asia & Pacific,0,
+SLB,Solomon Islands,East Asia & Pacific,0,
+SLE,Sierra Leone,Sub-Saharan Africa,0,
+SLV,El Salvador,Latin America & Caribbean,0,
+SMR,San Marino,Europe & Central Asia,0,
+SOM,Somalia,Sub-Saharan Africa,0,
+SRB,Serbia,Europe & Central Asia,0,
+SSD,South Sudan,Sub-Saharan Africa,0,
+STP,Sao Tome and Principe,Sub-Saharan Africa,0,Sao Tome And Principe
+SUR,Suriname,Latin America & Caribbean,0,
+SVK,Slovakia,Europe & Central Asia,0,Slovak Republic
+SVN,Slovenia,Europe & Central Asia,0,
+SWE,Sweden,Europe & Central Asia,0,
+SWZ,Eswatini,Sub-Saharan Africa,0,
+SXM,Sint Maarten (Dutch part),Latin America & Caribbean,0,Sint Maarten (Dutch Part)
+SYC,Seychelles,Sub-Saharan Africa,0,
+SYR,Syria,Middle East & North Africa,0,Syrian Arab Republic
+TCA,Turks and Caicos Islands,Latin America & Caribbean,0,Turks And Caicos Islands
+TCD,Chad,Sub-Saharan Africa,0,
+TGO,Togo,Sub-Saharan Africa,0,
+THA,Thailand,East Asia & Pacific,0,
+TJK,Tajikistan,Europe & Central Asia,0,
+TKM,Turkmenistan,Europe & Central Asia,0,
+TLS,Timor-Leste,East Asia & Pacific,0,Timor
+TON,Tonga,East Asia & Pacific,0,
+TTO,Trinidad and Tobago,Latin America & Caribbean,0,Trinidad And Tobago
+TUN,Tunisia,Middle East & North Africa,0,
+TUR,Turkey,Europe & Central Asia,0,Turkiye
+TUV,Tuvalu,East Asia & Pacific,0,
+TWN,Taiwan,East Asia & Pacific,0,
+TZA,Tanzania,Sub-Saharan Africa,0,
+UGA,Uganda,Sub-Saharan Africa,0,
+UKR,Ukraine,Europe & Central Asia,0,
+URY,Uruguay,Latin America & Caribbean,0,
+USA,United States,North America,0,
+UZB,Uzbekistan,Europe & Central Asia,0,
+VCT,Saint Vincent and the Grenadines,Latin America & Caribbean,0,St. Vincent And The Grenadines|St. Vincent and the Grenadines
+VEN,Venezuela,Latin America & Caribbean,0,"Venezuela, RB"
+VGB,British Virgin Islands,Latin America & Caribbean,0,
+VIR,United States Virgin Islands,Latin America & Caribbean,0,Virgin Islands (U.S.)
+VNM,Vietnam,East Asia & Pacific,0,Viet Nam
+VUT,Vanuatu,East Asia & Pacific,0,
+WSM,Samoa,East Asia & Pacific,0,
+XKX,Kosovo,Europe & Central Asia,0,
+YEM,Yemen,Middle East & North Africa,0,"Yemen, Rep."
+ZAF,South Africa,Sub-Saharan Africa,0,
+ZMB,Zambia,Sub-Saharan Africa,0,
+ZWE,Zimbabwe,Sub-Saharan Africa,0,
+AGG_AFE,Africa Eastern and Southern,,1,
+AGG_AFW,Africa Western and Central,,1,
+AGG_EAP,East Asia & Pacific,,1,East Asia & Pacific (WB)
+AGG_ECA,Europe & Central Asia,,1,Europe & Central Asia (WB)
+AGG_EUU,European Union,,1,
+AGG_HIC,High-income countries,,1,High income
+AGG_HPC,Heavily indebted poor countries,,1,Heavily indebted poor countries (HIPC)
+AGG_IBD,IBRD only,,1,
+AGG_IBT,IDA & IBRD total,,1,
+AGG_IDA,IDA total,,1,
+AGG_IDB,IDA blend,,1,
+AGG_IDX,IDA only,,1,
+AGG_LAC,Latin America & Caribbean,,1,Latin America & Caribbean (WB)|Latin America & Caribbean (excluding high income)
+AGG_LDC,Least developed countries (UN),,1,Least developed countries: UN classification
+AGG_LIC,Low-income countries,,1,Low income
+AGG_LMC,Lower-middle-income countries,,1,
+AGG_LMY,Low & middle income,,1,
+AGG_MNA,Middle East & North Africa,,1,Middle East & North Africa (WB)|Middle East & North Africa (excluding high income)
+AGG_NAC,North America,,1,North America (WB)
+AGG_OED,OECD members,,1,
+AGG_SAS,South Asia,,1,South Asia (WB)
+AGG_SSF,Sub-Saharan Africa,,1,Sub-Saharan Africa (WB)|Sub-Saharan Africa (excluding high income)
+AGG_UMC,Upper-middle-income countries,,1,
+WLD,World,,1,OWID_WRL
