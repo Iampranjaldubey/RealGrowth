@@ -6,8 +6,9 @@ growth minus inflation — alongside GDP, debt, population and the cost of a hea
 Flask API and a plain-JS frontend with a tested SQLite warehouse, a typed FastAPI service, and a
 TypeScript/React client.
 
-Run it locally in one command with Docker (see [Getting started](#getting-started)) — API docs are
-served at `/docs` and the data-quality report at `/data-quality` once it's running.
+Run it locally with a Python process for the API and Vite for the frontend (see
+[Getting started](#getting-started)) — API docs are served at `/docs` and the data-quality report
+at `/data-quality` once it's running.
 
 ## The finding that shaped this rebuild
 
@@ -108,8 +109,8 @@ notebooks that produced the raw CSVs, kept for provenance with their outputs str
 | API | FastAPI, Pydantic v2, slowapi (rate limiting), uvicorn |
 | Frontend | React 19, TypeScript (strict), TanStack Query, React Router 7, Chart.js |
 | Testing | pytest + httpx (backend, 130+ tests), Vitest + React Testing Library (frontend) |
-| CI | GitHub Actions — lint, type-check, test and Docker-build every push ([workflow](.github/workflows/ci.yml)) |
-| Containers | Multi-stage Docker for both services; non-root users; the backend image builds the warehouse from the raw CSVs at image-build time with `--strict` |
+| CI | GitHub Actions — lint, type-check and test every push ([workflow](.github/workflows/ci.yml)) |
+| Deploy | Render Blueprint (`render.yaml`) — a Python web service + a static site, free tier, no containers |
 
 ## Getting started
 
@@ -170,13 +171,6 @@ once at build time) and a static `frontend/dist` folder. Point the frontend at
 the API with `VITE_API_URL`, and restrict the API's CORS to the frontend origin
 with `REALGROWTH_CORS_ORIGINS`.
 
-### Docker (optional)
-
-A multi-stage `docker-compose.yml` is included for anyone who prefers
-containers — `docker compose up --build`, then the frontend is on
-http://localhost:3000 and the API on http://localhost:8000. It isn't required
-for local dev or deployment.
-
 ## API overview
 
 Full interactive documentation (OpenAPI/Swagger) is served at `/docs` by the running API. Routes,
@@ -209,17 +203,17 @@ RealGrowth/
 │   │   ├── repository.py       every query, as SQL
 │   │   ├── stats.py            Pearson r / OLS / significance, stdlib only
 │   │   ├── main.py, config.py, db.py, schemas.py
-│   ├── tests/                  130+ tests: ETL, repository, stats, API
-│   └── Dockerfile              multi-stage: builds the warehouse, then runs uvicorn as non-root
+│   └── tests/                  130+ tests: ETL, repository, stats, API
 ├── frontend/
 │   ├── src/
 │   │   ├── api/                 typed client (client.ts) + TanStack Query hooks (queries.ts)
 │   │   ├── components/          charts/, layout/, ui/
 │   │   ├── pages/                HomePage, IndicatorExplorerPage, CorrelationPage, DataQualityPage
 │   │   └── lib/                  formatters, chart theme, URL-driven state
-│   └── Dockerfile               multi-stage: Vite build → nginx (unprivileged)
+│   └── .env.example             VITE_API_URL template (copy to .env for local dev)
 ├── notebooks/                    original scraping/cleaning notebooks (outputs stripped)
-└── .github/workflows/ci.yml      lint + type-check + test + Docker build, every push
+├── .github/workflows/ci.yml      lint + type-check + test, every push
+└── render.yaml                   Render Blueprint: Python API + static site (no Docker)
 ```
 
 ## What changed from the previous version
@@ -227,8 +221,8 @@ RealGrowth/
 This is a ground-up rebuild, not an incremental update. In short: the data layer moved from
 pandas-in-memory to a tested SQLite warehouse; the API moved from Flask to typed FastAPI with a
 consistent error contract; the frontend moved from plain JS to TypeScript with nine near-duplicate
-pages collapsed into one metadata-driven page; and CI, Docker, and a real test suite exist for the
-first time. Commit history has the full detail per layer.
+pages collapsed into one metadata-driven page; and CI and a real test suite exist for the first
+time. Commit history has the full detail per layer.
 
 ## License
 

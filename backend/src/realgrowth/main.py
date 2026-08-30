@@ -1,6 +1,6 @@
 """FastAPI application factory and ASGI entry point.
 
-Run with: ``uvicorn realgrowth.main:app`` (see backend/Dockerfile).
+Run with: ``uvicorn realgrowth.main:app`` (see render.yaml / the README).
 """
 
 from __future__ import annotations
