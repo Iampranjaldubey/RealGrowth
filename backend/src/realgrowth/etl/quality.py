@@ -74,9 +74,7 @@ class QualityReport:
 
     @property
     def unresolved_entities(self) -> list[str]:
-        return sorted(
-            {i.entity for i in self.issues if i.kind == "unresolved_entity" and i.entity}
-        )
+        return sorted({i.entity for i in self.issues if i.kind == "unresolved_entity" and i.entity})
 
     def as_dict(self, *, max_issues: int = 200) -> dict[str, Any]:
         return {
@@ -137,9 +135,7 @@ def build_report(
     for indicator_id in INDICATORS:
         rows = by_indicator.get(indicator_id, [])
         if not rows:
-            coverage.append(
-                IndicatorCoverage(indicator_id, 0, 0, None, None, 0.0)
-            )
+            coverage.append(IndicatorCoverage(indicator_id, 0, 0, None, None, 0.0))
             continue
         years = {r.year for r in rows}
         countries = {r.iso3 for r in rows}

@@ -73,13 +73,9 @@ class CorrelationResult:
 
 def _validate(xs: Sequence[float], ys: Sequence[float]) -> None:
     if len(xs) != len(ys):
-        raise InsufficientDataError(
-            f"x and y must be the same length, got {len(xs)} and {len(ys)}"
-        )
+        raise InsufficientDataError(f"x and y must be the same length, got {len(xs)} and {len(ys)}")
     if len(xs) < MIN_PAIRS:
-        raise InsufficientDataError(
-            f"need at least {MIN_PAIRS} paired observations, got {len(xs)}"
-        )
+        raise InsufficientDataError(f"need at least {MIN_PAIRS} paired observations, got {len(xs)}")
 
 
 def standard_normal_cdf(x: float) -> float:

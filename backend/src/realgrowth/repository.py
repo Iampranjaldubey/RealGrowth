@@ -107,8 +107,7 @@ class Repository:
         if indicator_id:
             self.get_indicator(indicator_id)  # validate, raising NotFoundError
             clauses.append(
-                "EXISTS (SELECT 1 FROM observations o "
-                "WHERE o.iso3 = c.iso3 AND o.indicator_id = ?)"
+                "EXISTS (SELECT 1 FROM observations o WHERE o.iso3 = c.iso3 AND o.indicator_id = ?)"
             )
             params.append(indicator_id)
 
@@ -269,7 +268,7 @@ class Repository:
             SELECT o.iso3, c.name AS country, c.region, o.value
             FROM observations o
             JOIN countries c ON c.iso3 = o.iso3
-            WHERE {' AND '.join(clauses)}
+            WHERE {" AND ".join(clauses)}
             ORDER BY o.value {direction}, c.name
             LIMIT ?
             """,
@@ -452,9 +451,7 @@ class Repository:
             "is_significant": summary.is_significant,
             "strength": summary.strength,
         }
-        result["note"] = (
-            "Correlation is not causation; both series may respond to a common driver."
-        )
+        result["note"] = "Correlation is not causation; both series may respond to a common driver."
         return result
 
     # ----------------------------------------------------------- quality

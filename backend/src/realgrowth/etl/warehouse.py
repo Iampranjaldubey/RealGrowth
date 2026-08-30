@@ -85,9 +85,7 @@ def connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
     """Open a warehouse connection with foreign keys and row access by name."""
     target = Path(path)
     if read_only:
-        connection = sqlite3.connect(
-            f"file:{target}?mode=ro", uri=True, check_same_thread=False
-        )
+        connection = sqlite3.connect(f"file:{target}?mode=ro", uri=True, check_same_thread=False)
     else:
         target.parent.mkdir(parents=True, exist_ok=True)
         connection = sqlite3.connect(target, check_same_thread=False)
@@ -149,9 +147,7 @@ def insert_indicators(connection: sqlite3.Connection) -> int:
     return len(rows)
 
 
-def insert_observations(
-    connection: sqlite3.Connection, observations: Iterable[Observation]
-) -> int:
+def insert_observations(connection: sqlite3.Connection, observations: Iterable[Observation]) -> int:
     """Bulk-insert the fact table."""
     cursor = connection.executemany(
         "INSERT INTO observations (indicator_id, iso3, year, value) VALUES (?, ?, ?, ?)",
@@ -160,9 +156,7 @@ def insert_observations(
     return cursor.rowcount if cursor.rowcount != -1 else 0
 
 
-def insert_series_flags(
-    connection: sqlite3.Connection, flags: Iterable[SeriesFlag]
-) -> int:
+def insert_series_flags(connection: sqlite3.Connection, flags: Iterable[SeriesFlag]) -> int:
     """Record per-series caveats so the API can serve them alongside the data."""
     rows = [(f.indicator_id, f.iso3, f.flag, f.detail) for f in flags]
     connection.executemany(
@@ -213,9 +207,7 @@ def set_metadata(connection: sqlite3.Connection, entries: Sequence[tuple[str, st
 
 
 def get_metadata(connection: sqlite3.Connection, key: str) -> str | None:
-    row = connection.execute(
-        "SELECT value FROM etl_metadata WHERE key = ?", (key,)
-    ).fetchone()
+    row = connection.execute("SELECT value FROM etl_metadata WHERE key = ?", (key,)).fetchone()
     return None if row is None else str(row["value"])
 
 

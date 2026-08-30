@@ -114,9 +114,7 @@ class TestExtract:
     def test_missing_cells_produce_no_observation(
         self, tmp_path: Path, registry: CountryRegistry
     ) -> None:
-        path = _write_csv(
-            tmp_path / "gdp.csv", "Country Name,2020,2021\nIndia,1900,\n"
-        )
+        path = _write_csv(tmp_path / "gdp.csv", "Country Name,2020,2021\nIndia,1900,\n")
         spec = SourceSpec(GDP_PER_CAPITA, "gdp.csv", name_column="Country Name")
         table = read_wide_csv(path, spec)
         obs, _ = extract(table, spec, registry, indicator(GDP_PER_CAPITA))
@@ -125,9 +123,7 @@ class TestExtract:
     def test_unresolved_entity_is_reported_not_dropped_silently(
         self, tmp_path: Path, registry: CountryRegistry
     ) -> None:
-        path = _write_csv(
-            tmp_path / "gdp.csv", "Country Name,2020\nAtlantis,1000\n"
-        )
+        path = _write_csv(tmp_path / "gdp.csv", "Country Name,2020\nAtlantis,1000\n")
         spec = SourceSpec(GDP_PER_CAPITA, "gdp.csv", name_column="Country Name")
         table = read_wide_csv(path, spec)
         obs, issues = extract(table, spec, registry, indicator(GDP_PER_CAPITA))
@@ -139,9 +135,7 @@ class TestExtract:
     def test_out_of_range_value_is_dropped_and_reported(
         self, tmp_path: Path, registry: CountryRegistry
     ) -> None:
-        path = _write_csv(
-            tmp_path / "gdp.csv", "Country Name,2020\nIndia,-999999\n"
-        )
+        path = _write_csv(tmp_path / "gdp.csv", "Country Name,2020\nIndia,-999999\n")
         spec = SourceSpec(GDP_PER_CAPITA, "gdp.csv", name_column="Country Name")
         table = read_wide_csv(path, spec)
         obs, issues = extract(table, spec, registry, indicator(GDP_PER_CAPITA))
@@ -156,9 +150,7 @@ class TestExtract:
             tmp_path / "diet.csv",
             "Entity,Code,2020\nAlbania,ALB,3.5\n",
         )
-        spec = SourceSpec(
-            HEALTHY_DIET_COST, "diet.csv", name_column="Entity", code_column="Code"
-        )
+        spec = SourceSpec(HEALTHY_DIET_COST, "diet.csv", name_column="Entity", code_column="Code")
         table = read_wide_csv(path, spec)
         obs, issues = extract(table, spec, registry, indicator(HEALTHY_DIET_COST))
         assert issues == []

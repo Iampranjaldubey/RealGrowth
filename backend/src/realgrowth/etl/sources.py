@@ -129,8 +129,7 @@ INDICATORS: dict[str, Indicator] = {
             unit="% per year",
             unit_symbol="%",
             description=(
-                "Annual change in the consumer price index (World Bank series "
-                "FP.CPI.TOTL.ZG)."
+                "Annual change in the consumer price index (World Bank series FP.CPI.TOTL.ZG)."
             ),
             source=_WORLD_BANK,
             source_url=f"{_WB_URL}/indicator/FP.CPI.TOTL.ZG",

@@ -31,9 +31,7 @@ def get_indicator(indicator_id: str, repo: RepositoryDep) -> dict[str, Any]:
 def get_series(
     indicator_id: str,
     repo: RepositoryDep,
-    countries: Annotated[
-        str, Query(description="Comma-separated ISO3 codes, e.g. USA,IND,DEU")
-    ],
+    countries: Annotated[str, Query(description="Comma-separated ISO3 codes, e.g. USA,IND,DEU")],
     start_year: Annotated[int | None, Query(ge=1900, le=2100)] = None,
     end_year: Annotated[int | None, Query(ge=1900, le=2100)] = None,
 ) -> dict[str, Any]:

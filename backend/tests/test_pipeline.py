@@ -31,9 +31,7 @@ class TestPipelineRunsCleanly:
         self, real_repo: Repository
     ) -> None:
         for indicator in real_repo.list_indicators():
-            assert indicator["min_year"] is not None, (
-                f"{indicator['id']} has zero observations"
-            )
+            assert indicator["min_year"] is not None, f"{indicator['id']} has zero observations"
 
     def test_registers_exactly_the_declared_indicator_set(self, real_repo: Repository) -> None:
         ids = {i["id"] for i in real_repo.list_indicators()}

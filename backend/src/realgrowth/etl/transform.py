@@ -108,8 +108,7 @@ def read_wide_csv(path: str | Path, spec: SourceSpec) -> WideTable:
         headers = list(reader.fieldnames or ())
         if spec.name_column not in headers:
             raise ValueError(
-                f"{file_path.name}: expected a {spec.name_column!r} column, "
-                f"found {headers[:6]}"
+                f"{file_path.name}: expected a {spec.name_column!r} column, found {headers[:6]}"
             )
         if spec.code_column is not None and spec.code_column not in headers:
             raise ValueError(
@@ -231,9 +230,9 @@ def load_source(
     return extract(table, spec, registry, meta)
 
 
-def group_series(observations: Iterator[Observation] | list[Observation]) -> dict[
-    tuple[str, str], dict[int, float]
-]:
+def group_series(
+    observations: Iterator[Observation] | list[Observation],
+) -> dict[tuple[str, str], dict[int, float]]:
     """Index observations as ``(indicator_id, iso3) -> {year: value}``."""
     series: dict[tuple[str, str], dict[int, float]] = {}
     for obs in observations:

@@ -28,8 +28,7 @@ def open_connection(database_path: str | Path) -> sqlite3.Connection:
     path = Path(database_path)
     if not path.is_file():
         raise DatabaseUnavailableError(
-            f"warehouse not found at {path}; build it with "
-            "`python -m realgrowth.etl`"
+            f"warehouse not found at {path}; build it with `python -m realgrowth.etl`"
         )
     return warehouse.connect(path, read_only=True)
 

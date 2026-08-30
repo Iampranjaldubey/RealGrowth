@@ -131,9 +131,7 @@ class TestCountries:
 
 
 class TestCorrelation:
-    def test_time_series_mode_does_not_crash_on_growth_indicator(
-        self, client: TestClient
-    ) -> None:
+    def test_time_series_mode_does_not_crash_on_growth_indicator(self, client: TestClient) -> None:
         """The exact request that 500'd in the old API: float('India') from the
         unnamed leading column in real_growth.csv.
         """

@@ -143,9 +143,7 @@ class TestRealRegistry:
             "Democratic Republic Of Congo"
         )
 
-    def test_resolves_every_label_in_every_raw_source(
-        self, real_registry: CountryRegistry
-    ) -> None:
+    def test_resolves_every_label_in_every_raw_source(self, real_registry: CountryRegistry) -> None:
         """The regression guard: no raw entity may be silently dropped.
 
         If a vendor renames a country in a refreshed CSV this test fails with the

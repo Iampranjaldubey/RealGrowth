@@ -17,7 +17,21 @@ logger = logging.getLogger(__name__)
 
 
 class StrictModeError(RuntimeError):
-    """Raised in strict mode when the run produced data-quality issues."""
+    """Raised in strict mode when the run produced a *fatal* data-quality issue."""
+
+
+#: Issue kinds that indicate a genuine defect (a raw label the registry cannot
+#: resolve, or two rows silently colliding on the same country-year). These
+#: fail a strict build because they mean data is being dropped or shadowed
+#: without anyone deciding that on purpose.
+#:
+#: ``out_of_range`` and ``implausible_growth`` are deliberately excluded: they
+#: are the plausibility filters in realgrowth.etl.derive and
+#: realgrowth.etl.transform doing their job on data that is known to contain
+#: upstream imputation artefacts (see the ETL package docstring). Those are
+#: expected, counted, and published via the quality report and series flags,
+#: not defects to fail a build over.
+FATAL_ISSUE_KINDS = frozenset({"unresolved_entity", "duplicate_entity"})
 
 
 def run_etl(
@@ -70,12 +84,15 @@ def run_etl(
 
     report = build_report(observations, issues, registry, flags)
 
-    if strict and issues:
-        raise StrictModeError(
-            f"{len(issues)} data-quality issue(s): " + ", ".join(
-                f"{k}={v}" for k, v in report.issue_counts.items()
+    if strict:
+        fatal_counts = {
+            kind: count for kind, count in report.issue_counts.items() if kind in FATAL_ISSUE_KINDS
+        }
+        if fatal_counts:
+            raise StrictModeError(
+                "fatal data-quality issue(s), "
+                + ", ".join(f"{kind}={count}" for kind, count in fatal_counts.items())
             )
-        )
 
     if target.exists():
         target.unlink()
