@@ -1,0 +1,66 @@
+# Render Blueprint — one-click deploy, no Docker required.
+#
+# In the Render dashboard: New > Blueprint, connect this repo, and two free
+# services come up:
+#   realgrowth-api   FastAPI; builds the SQLite warehouse from the committed
+#                    CSVs at deploy time (stdlib ETL, no pandas).
+#   realgrowth-web   the React build, served as static files over Render's CDN.
+#
+# Two URLs can only be known after the first deploy, so they're marked
+# `sync: false` and Render will prompt for them (each service's public URL is
+# shown on its dashboard page):
+#   realgrowth-api  -> REALGROWTH_CORS_ORIGINS = the web service URL
+#   realgrowth-web  -> VITE_API_URL            = the api service URL + /api
+
+services:
+  # ---- Backend: typed FastAPI over the SQLite warehouse ---------------------
+  - type: web
+    name: realgrowth-api
+    runtime: python # Render's default Python is 3.11, which satisfies requires-python
+    plan: free
+    branch: main
+    healthCheckPath: /api/v1/meta/health
+    # The ETL is stdlib-only, so the build needs nothing beyond requirements.
+    # --strict fails the deploy on a genuine data defect (an unresolved country
+    # or a duplicate country-year), not on the known upstream imputation
+    # artefacts, which are flagged and published rather than treated as errors.
+    buildCommand: "pip install -r backend/requirements.txt && python -m realgrowth.etl --strict"
+    startCommand: "uvicorn realgrowth.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHONPATH
+        value: backend/src
+      - key: REALGROWTH_ENVIRONMENT
+        value: production
+      # Lock the API to your frontend's origin instead of "*". Set this to the
+      # web service URL after the first deploy, e.g.
+      # https://realgrowth-web.onrender.com
+      - key: REALGROWTH_CORS_ORIGINS
+        sync: false
+
+  # ---- Frontend: static React build -----------------------------------------
+  - type: web
+    name: realgrowth-web
+    runtime: static
+    branch: main
+    rootDir: frontend
+    # `npm install` (not `npm ci`): the platform-specific native build binary
+    # (rolldown) is resolved fresh for Render's Linux host. Versions are still
+    # pinned by the committed package-lock.json.
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: dist
+    # SPA fallback: unknown paths serve index.html so client-side routing works
+    # on a hard refresh or a shared deep link.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Hashed asset filenames never change contents, so cache them hard.
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    envVars:
+      # The API base URL, baked into the build. Set to the api service URL plus
+      # /api after the first deploy, e.g. https://realgrowth-api.onrender.com/api
+      - key: VITE_API_URL
+        sync: false

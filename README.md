@@ -113,18 +113,7 @@ notebooks that produced the raw CSVs, kept for provenance with their outputs str
 
 ## Getting started
 
-### Docker (recommended)
-
-```bash
-git clone https://github.com/Iampranjaldubey/RealGrowth.git
-cd RealGrowth
-docker compose up --build
-```
-
-- Frontend: http://localhost:3000
-- API: http://localhost:8000 — interactive docs at http://localhost:8000/docs
-
-### Native
+### Native (recommended for local dev)
 
 ```bash
 # 1. Build the warehouse (stdlib only, no venv needed for this step)
@@ -156,6 +145,37 @@ cd frontend && npm install
 npm run test
 npm run typecheck
 ```
+
+## Deployment
+
+No Docker required. The repo ships a [Render](https://render.com) Blueprint
+(`render.yaml`) that stands up both services on the free tier:
+
+1. Push this repo to GitHub.
+2. In Render: **New > Blueprint**, select the repo, and apply `render.yaml`.
+3. Render prompts for the two cross-service URLs it can't know until the
+   services exist. Set them and redeploy:
+   - `realgrowth-api` → `REALGROWTH_CORS_ORIGINS` = the web URL, e.g.
+     `https://realgrowth-web.onrender.com`
+   - `realgrowth-web` → `VITE_API_URL` = the API URL + `/api`, e.g.
+     `https://realgrowth-api.onrender.com/api`
+
+The API builds its SQLite warehouse from the committed CSVs at deploy time
+(`python -m realgrowth.etl --strict`), so there's no database to provision or
+migrate; the frontend is a static build served over a CDN.
+
+The same two moving parts deploy on any host: a Python web process
+(`uvicorn realgrowth.main:app --host 0.0.0.0 --port $PORT`, with the ETL run
+once at build time) and a static `frontend/dist` folder. Point the frontend at
+the API with `VITE_API_URL`, and restrict the API's CORS to the frontend origin
+with `REALGROWTH_CORS_ORIGINS`.
+
+### Docker (optional)
+
+A multi-stage `docker-compose.yml` is included for anyone who prefers
+containers — `docker compose up --build`, then the frontend is on
+http://localhost:3000 and the API on http://localhost:8000. It isn't required
+for local dev or deployment.
 
 ## API overview
 
