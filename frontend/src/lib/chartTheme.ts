@@ -57,20 +57,29 @@ interface BaseOptionsArgs {
   indexAxis?: "x" | "y";
 }
 
+/** The tooltip callback fields common to every chart type this app uses. */
+interface TooltipContext {
+  dataset: { label?: string };
+  parsed: unknown;
+}
+
 /**
- * Generic over the chart type because Chart.js's `ChartOptions<T>` is not
- * structurally assignable between different `T`s (a known upstream
- * limitation — the callback signatures embed the type parameter). Callers
- * pass their own type, e.g. `baseOptions<"bar">(...)`, so the returned shape
- * lines up with what `<Bar>`/`<Line>` expect without an `as` cast at every
- * call site.
+ * Chart.js's `ChartOptions<T>` embeds `T` throughout its callback signatures
+ * (tooltip callbacks, scale tick callbacks, etc.), so a single object literal
+ * cannot be structurally typed as both `ChartOptions<"bar">` and
+ * `ChartOptions<"line">` — TypeScript has no way to prove a `context.parsed.y`
+ * access is safe across every chart type at once. The options built here only
+ * use the handful of fields common to bar and line charts (never a
+ * per-type-specific callback shape), so the `as` is a type-system workaround
+ * for a real Chart.js limitation, not a hidden unsafe cast — passing bad
+ * shapes into a chart component still fails visibly in the browser console.
  */
 export function baseOptions<TType extends "line" | "bar" = "line" | "bar">({
   valueFormatter,
   showLegend = true,
   indexAxis = "x",
 }: BaseOptionsArgs = {}): ChartOptions<TType> {
-  return {
+  const options: Record<string, unknown> = {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis,
@@ -91,9 +100,10 @@ export function baseOptions<TType extends "line" | "bar" = "line" | "bar">({
         cornerRadius: 8,
         callbacks: valueFormatter
           ? {
-              label: (context) => {
+              label: (context: TooltipContext) => {
                 const label = context.dataset.label ? `${context.dataset.label}: ` : "";
-                const raw = indexAxis === "y" ? context.parsed.x : context.parsed.y;
+                const parsed = context.parsed as { x?: number; y?: number };
+                const raw = indexAxis === "y" ? parsed.x : parsed.y;
                 return `${label}${valueFormatter(raw ?? 0)}`;
               },
             }
@@ -107,7 +117,7 @@ export function baseOptions<TType extends "line" | "bar" = "line" | "bar">({
           font: { size: 11 },
           callback:
             indexAxis === "y" && valueFormatter
-              ? (value) => valueFormatter(Number(value))
+              ? (value: string | number) => valueFormatter(Number(value))
               : undefined,
         },
       },
@@ -117,10 +127,11 @@ export function baseOptions<TType extends "line" | "bar" = "line" | "bar">({
           font: { size: 11 },
           callback:
             indexAxis === "x" && valueFormatter
-              ? (value) => valueFormatter(Number(value))
+              ? (value: string | number) => valueFormatter(Number(value))
               : undefined,
         },
       },
     },
   };
+  return options as ChartOptions<TType>;
 }
