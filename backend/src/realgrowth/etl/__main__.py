@@ -14,14 +14,20 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_RAW = REPO_ROOT / "data" / "raw"
 DEFAULT_REFERENCE = REPO_ROOT / "data" / "reference" / "countries.csv"
 DEFAULT_DB = REPO_ROOT / "data" / "realgrowth.db"
+DEFAULT_MODELS = REPO_ROOT / "data" / "models"
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m realgrowth.etl",
-        description="Build the RealGrowth SQLite warehouse from the raw CSV sources.",
+        description="Build the RealGrowth SQLite warehouse from the raw snapshots.",
     )
-    parser.add_argument("--raw-dir", type=Path, default=DEFAULT_RAW, help="raw CSV directory")
+    parser.add_argument(
+        "--raw-dir", type=Path, default=DEFAULT_RAW, help="raw dir (legacy CSVs + api/ snapshot)"
+    )
+    parser.add_argument(
+        "--models", type=Path, default=DEFAULT_MODELS, help="offline model artefacts directory"
+    )
     parser.add_argument(
         "--reference", type=Path, default=DEFAULT_REFERENCE, help="country registry CSV"
     )
@@ -54,7 +60,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        report = run_etl(args.raw_dir, args.reference, args.output, strict=args.strict)
+        report = run_etl(
+            args.raw_dir,
+            args.reference,
+            args.output,
+            strict=args.strict,
+            models_dir=args.models,
+        )
     except StrictModeError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

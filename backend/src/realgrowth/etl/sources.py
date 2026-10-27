@@ -1,17 +1,23 @@
-"""Declarative catalogue of indicators and their raw sources.
+"""Declarative catalogue of indicators and where each one comes from.
 
-Two ideas keep this layer honest:
+Three kinds of indicator live here:
 
-1. **Columns are addressed by header label, never by position.** Two of the raw
-   files carry an unnamed pandas index column, which is what made the previous
-   implementation return ``"Country name"`` as a data year and crash the
-   correlation endpoint with ``float('India')``. Year columns are discovered by
-   matching a four-digit header, so an extra leading or trailing column simply
-   cannot shift the data.
-2. **Derived indicators are computed here, not vendored.** The repository used to
-   ship ``real_growth.csv`` as an opaque artefact. It is in fact
-   ``wage_growth - inflation``, so it is now recomputed from its inputs where
-   both inputs genuinely exist (see :mod:`realgrowth.etl.derive`).
+1. **API series** — fetched by :mod:`realgrowth.ingest` from the World Bank, the
+   IMF or Our World in Data into ``data/raw/api/<id>.csv``. Their ids match
+   the ingest catalogue's series ids one-to-one.
+2. **Legacy CSV series** — only ``avg_wage``, which comes from an ILOSTAT
+   extract converted to USD in the original project's notebooks; there is no
+   keyless API for it. It is read from a wide CSV by header label, never by
+   column position (two of the original files had an unnamed pandas index
+   column that once shifted every value by one).
+3. **Derived series** — computed in :mod:`realgrowth.etl.derive` from the above.
+
+The headline indicator, real wage growth, used to be computed from wages in
+*US dollars* minus *domestic* inflation, which mixes exchange-rate swings into a
+"real" wage. The upstream notebook built the USD wage as ``local wage /
+exchange rate``, so multiplying by the World Bank exchange rate recovers the
+local-currency wage, and real wage growth is now computed entirely in local
+currency — the definition the ILO and OECD use.
 """
 
 from __future__ import annotations
@@ -21,18 +27,47 @@ from dataclasses import dataclass, field
 
 YEAR_HEADER = re.compile(r"^(19|20)\d{2}$")
 
-# Indicator ids
-GDP_PER_CAPITA = "gdp_per_capita"
-INFLATION_RATE = "inflation_rate"
-AVG_WAGE = "avg_wage"
-DEBT_TO_GDP = "debt_to_gdp"
-HEALTHY_DIET_COST = "healthy_diet_cost"
-RURAL_POPULATION = "rural_population"
-URBAN_POPULATION = "urban_population"
-NOMINAL_WAGE_GROWTH = "nominal_wage_growth"
+# ----------------------------------------------------------- indicator ids
+# Wages and prices
 REAL_WAGE_GROWTH = "real_wage_growth"
+NOMINAL_WAGE_GROWTH = "nominal_wage_growth"
+AVG_WAGE = "avg_wage"
+AVG_WAGE_LCU = "avg_wage_lcu"
+INFLATION_RATE = "inflation_rate"
+CPI_INDEX = "cpi_index"
+GDP_DEFLATOR_INFLATION = "gdp_deflator_inflation"
+HEALTHY_DIET_COST = "healthy_diet_cost"
+# Output
+GDP_PER_CAPITA = "gdp_per_capita"
+GDP_PER_CAPITA_PPP = "gdp_per_capita_ppp"
+GDP_GROWTH = "gdp_growth"
+# Labour
+UNEMPLOYMENT_RATE = "unemployment_rate"
+# Money and external
+BROAD_MONEY_GROWTH = "broad_money_growth"
+EXCHANGE_RATE = "exchange_rate"
+CURRENT_ACCOUNT = "current_account"
+TRADE_OPENNESS = "trade_openness"
+REAL_INTEREST_RATE = "real_interest_rate"
+# Public finance
+DEBT_TO_GDP = "debt_to_gdp"
+# Population and living standards
 POPULATION = "population"
+URBAN_POPULATION = "urban_population"
+RURAL_POPULATION = "rural_population"
 URBANISATION_RATE = "urbanisation_rate"
+GINI_INDEX = "gini_index"
+POVERTY_RATE = "poverty_rate"
+
+# --------------------------------------------------------------- categories
+WAGES_PRICES = "Wages & prices"
+OUTPUT = "Output & growth"
+LABOUR = "Labour"
+MONEY_EXTERNAL = "Money & external"
+PUBLIC_FINANCE = "Public finance"
+PEOPLE = "Population & living standards"
+
+CATEGORIES: tuple[str, ...] = (WAGES_PRICES, OUTPUT, LABOUR, MONEY_EXTERNAL, PUBLIC_FINANCE, PEOPLE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,38 +87,45 @@ class Indicator:
     #: Inclusive range of physically possible values; anything outside is a
     #: transcription error and is dropped rather than served.
     valid_range: tuple[float, float]
+    category: str = WAGES_PRICES
     is_derived: bool = False
     #: Ids this indicator is computed from (derived indicators only).
     depends_on: tuple[str, ...] = ()
 
 
-_WORLD_BANK = "World Bank Open Data"
-_WB_URL = "https://data.worldbank.org"
-_MACROTRENDS = "Macrotrends"
-_MT_URL = "https://www.macrotrends.net"
-_OWID = "Our World in Data (FAO)"
-_OWID_URL = "https://ourworldindata.org/grapher/cost-healthy-diet"
-_ILO = "ILOSTAT, converted to USD with World Bank exchange rates"
-_ILO_URL = "https://ilostat.ilo.org"
+_WB = "World Bank World Development Indicators"
+_IMF = "IMF World Economic Outlook"
+_OWID = "Our World in Data (FAO / World Bank Food Prices for Nutrition)"
+_ILO = "ILOSTAT mean monthly earnings (legacy extract, converted to USD)"
+_ILO_URL = "https://ilostat.ilo.org/topics/wages/"
+
+
+def _wb(code: str) -> str:
+    return f"https://data.worldbank.org/indicator/{code}"
+
+
+def _imf(code: str) -> str:
+    return f"https://www.imf.org/external/datamapper/{code}"
+
+
+_PCT = "% per year"
 
 INDICATORS: dict[str, Indicator] = {
     ind.id: ind
     for ind in (
+        # ------------------------------------------------- wages & prices
         Indicator(
             id=REAL_WAGE_GROWTH,
             name="Real wage growth",
-            unit="% per year",
+            unit=_PCT,
             unit_symbol="%",
             description=(
-                "Year-on-year change in the average wage after subtracting consumer "
-                "price inflation: positive means pay outpaced prices, negative means "
-                "workers lost purchasing power. Important caveat: wages are "
-                "denominated in US dollars while inflation is domestic CPI, so this "
-                "blends wage movement with exchange-rate movement against the dollar. "
-                "A country can show negative real growth largely because its currency "
-                "weakened, which is why 2022 looks severe for Europe and Japan."
+                "Year-on-year change in the average wage in local currency, minus "
+                "consumer price inflation. Positive means pay outpaced prices; "
+                "negative means workers lost purchasing power. Computed in local "
+                "currency so exchange-rate swings do not masquerade as wage changes."
             ),
-            source="Derived: nominal wage growth minus inflation",
+            source="Derived: nominal wage growth (local currency) minus CPI inflation",
             source_url=_ILO_URL,
             direction=1,
             decimals=2,
@@ -94,28 +136,46 @@ INDICATORS: dict[str, Indicator] = {
         Indicator(
             id=NOMINAL_WAGE_GROWTH,
             name="Nominal wage growth",
-            unit="% per year",
+            unit=_PCT,
             unit_symbol="%",
             description=(
-                "Year-on-year change in the average monthly wage in current US "
-                "dollars, before adjusting for inflation."
+                "Year-on-year change in the average monthly wage in local currency, "
+                "before adjusting for inflation. Transitions too large to be explained "
+                "by inflation are rejected as imputation artefacts."
             ),
-            source="Derived: year-on-year change in average wage",
+            source="Derived: year-on-year change in the local-currency average wage",
             source_url=_ILO_URL,
             direction=1,
             decimals=2,
-            valid_range=(-100.0, 1_000.0),
+            valid_range=(-100.0, 100_000.0),
             is_derived=True,
-            depends_on=(AVG_WAGE,),
+            depends_on=(AVG_WAGE_LCU,),
+        ),
+        Indicator(
+            id=AVG_WAGE_LCU,
+            name="Average wage (local currency)",
+            unit="local currency per month",
+            unit_symbol="",
+            description=(
+                "Average monthly earnings in local currency units, recovered as the "
+                "USD wage multiplied by the World Bank official exchange rate."
+            ),
+            source="Derived: average wage (USD) x official exchange rate",
+            source_url=_ILO_URL,
+            direction=1,
+            decimals=0,
+            valid_range=(0.0, 1e13),
+            is_derived=True,
+            depends_on=(AVG_WAGE, EXCHANGE_RATE),
         ),
         Indicator(
             id=AVG_WAGE,
-            name="Average wage",
+            name="Average wage (USD)",
             unit="USD per month",
             unit_symbol="$",
             description=(
-                "Average monthly earnings of employees, converted to current US "
-                "dollars using World Bank exchange rates."
+                "Average monthly earnings of employees in current US dollars. Some "
+                "cells were imputed upstream; see the data-quality page."
             ),
             source=_ILO,
             source_url=_ILO_URL,
@@ -126,83 +186,215 @@ INDICATORS: dict[str, Indicator] = {
         Indicator(
             id=INFLATION_RATE,
             name="Inflation rate",
-            unit="% per year",
+            unit=_PCT,
+            unit_symbol="%",
+            description="Annual change in the consumer price index (FP.CPI.TOTL.ZG).",
+            source=_WB,
+            source_url=_wb("FP.CPI.TOTL.ZG"),
+            direction=-1,
+            decimals=2,
+            valid_range=(-100.0, 1_000_000.0),
+        ),
+        Indicator(
+            id=CPI_INDEX,
+            name="Consumer price index",
+            unit="index, 2010 = 100",
+            unit_symbol="",
+            description=(
+                "Consumer price level relative to 2010. Ratios between two years "
+                "give the cumulative price change, which the purchasing-power "
+                "calculator uses."
+            ),
+            source=_WB,
+            source_url=_wb("FP.CPI.TOTL"),
+            direction=0,
+            decimals=2,
+            valid_range=(0.0, 1e18),
+        ),
+        Indicator(
+            id=GDP_DEFLATOR_INFLATION,
+            name="GDP deflator inflation",
+            unit=_PCT,
             unit_symbol="%",
             description=(
-                "Annual change in the consumer price index (World Bank series FP.CPI.TOTL.ZG)."
+                "Annual change in the GDP implicit deflator: price growth across the "
+                "whole economy rather than the consumer basket."
             ),
-            source=_WORLD_BANK,
-            source_url=f"{_WB_URL}/indicator/FP.CPI.TOTL.ZG",
+            source=_WB,
+            source_url=_wb("NY.GDP.DEFL.KD.ZG"),
             direction=-1,
             decimals=2,
-            valid_range=(-100.0, 100_000.0),
-        ),
-        Indicator(
-            id=GDP_PER_CAPITA,
-            name="GDP per capita",
-            unit="USD",
-            unit_symbol="$",
-            description="Gross domestic product divided by population, in current US dollars.",
-            source=_WORLD_BANK,
-            source_url=f"{_WB_URL}/indicator/NY.GDP.PCAP.CD",
-            direction=1,
-            decimals=0,
-            valid_range=(0.0, 500_000.0),
-        ),
-        Indicator(
-            id=DEBT_TO_GDP,
-            name="Government debt to GDP",
-            unit="% of GDP",
-            unit_symbol="%",
-            description="Gross general government debt expressed as a share of GDP.",
-            source=_MACROTRENDS,
-            source_url=f"{_MT_URL}/global-metrics/countries/ranking/debt-to-gdp-ratio",
-            direction=-1,
-            decimals=2,
-            valid_range=(0.0, 1_000.0),
+            valid_range=(-100.0, 1_000_000.0),
         ),
         Indicator(
             id=HEALTHY_DIET_COST,
             name="Cost of a healthy diet",
-            unit="USD per person per day (PPP)",
+            unit="PPP $ per person per day",
             unit_symbol="$",
             description=(
                 "Least-cost daily diet meeting dietary guidelines, in "
                 "purchasing-power-parity dollars per person per day."
             ),
             source=_OWID,
-            source_url=_OWID_URL,
+            source_url="https://ourworldindata.org/grapher/cost-healthy-diet",
             direction=-1,
             decimals=2,
             valid_range=(0.0, 100.0),
         ),
+        # --------------------------------------------------------- output
         Indicator(
-            id=URBANISATION_RATE,
-            name="Urbanisation rate",
-            unit="% of population",
+            id=GDP_PER_CAPITA,
+            name="GDP per capita",
+            unit="current USD",
+            unit_symbol="$",
+            description="Gross domestic product divided by population, in current US dollars.",
+            source=_WB,
+            source_url=_wb("NY.GDP.PCAP.CD"),
+            direction=1,
+            decimals=0,
+            valid_range=(0.0, 500_000.0),
+            category=OUTPUT,
+        ),
+        Indicator(
+            id=GDP_PER_CAPITA_PPP,
+            name="GDP per capita (PPP)",
+            unit="current international $",
+            unit_symbol="$",
+            description=(
+                "GDP per person at purchasing-power parity, which corrects for price "
+                "level differences and is the better cross-country welfare comparison."
+            ),
+            source=_WB,
+            source_url=_wb("NY.GDP.PCAP.PP.CD"),
+            direction=1,
+            decimals=0,
+            valid_range=(0.0, 500_000.0),
+            category=OUTPUT,
+        ),
+        Indicator(
+            id=GDP_GROWTH,
+            name="Real GDP growth",
+            unit=_PCT,
             unit_symbol="%",
-            description="Share of the population living in urban areas.",
-            source="Derived: urban / (urban + rural) population",
-            source_url=_MT_URL,
-            direction=0,
+            description="Annual growth of GDP at constant prices.",
+            source=_WB,
+            source_url=_wb("NY.GDP.MKTP.KD.ZG"),
+            direction=1,
+            decimals=2,
+            valid_range=(-100.0, 300.0),
+            category=OUTPUT,
+        ),
+        # --------------------------------------------------------- labour
+        Indicator(
+            id=UNEMPLOYMENT_RATE,
+            name="Unemployment rate",
+            unit="% of labour force",
+            unit_symbol="%",
+            description="Unemployment as a share of the labour force (ILO modelled estimate).",
+            source=_WB,
+            source_url=_wb("SL.UEM.TOTL.ZS"),
+            direction=-1,
             decimals=2,
             valid_range=(0.0, 100.0),
-            is_derived=True,
-            depends_on=(URBAN_POPULATION, RURAL_POPULATION),
+            category=LABOUR,
         ),
+        # ----------------------------------------------- money & external
+        Indicator(
+            id=BROAD_MONEY_GROWTH,
+            name="Broad money growth",
+            unit=_PCT,
+            unit_symbol="%",
+            description=(
+                "Annual growth of broad money (M2/M3), a classic leading indicator of inflation."
+            ),
+            source=_WB,
+            source_url=_wb("FM.LBL.BMNY.ZG"),
+            direction=0,
+            decimals=2,
+            valid_range=(-100.0, 1_000_000.0),
+            category=MONEY_EXTERNAL,
+        ),
+        Indicator(
+            id=EXCHANGE_RATE,
+            name="Exchange rate",
+            unit="local currency per USD",
+            unit_symbol="",
+            description=(
+                "Official exchange rate, period average, local currency units per US dollar."
+            ),
+            source=_WB,
+            source_url=_wb("PA.NUS.FCRF"),
+            direction=0,
+            decimals=4,
+            valid_range=(0.0, 1e15),
+            category=MONEY_EXTERNAL,
+        ),
+        Indicator(
+            id=CURRENT_ACCOUNT,
+            name="Current account balance",
+            unit="% of GDP",
+            unit_symbol="%",
+            description="Current account balance as a share of GDP.",
+            source=_WB,
+            source_url=_wb("BN.CAB.XOKA.GD.ZS"),
+            direction=0,
+            decimals=2,
+            valid_range=(-500.0, 500.0),
+            category=MONEY_EXTERNAL,
+        ),
+        Indicator(
+            id=TRADE_OPENNESS,
+            name="Trade openness",
+            unit="% of GDP",
+            unit_symbol="%",
+            description="Exports plus imports of goods and services as a share of GDP.",
+            source=_WB,
+            source_url=_wb("NE.TRD.GNFS.ZS"),
+            direction=0,
+            decimals=1,
+            valid_range=(0.0, 2_000.0),
+            category=MONEY_EXTERNAL,
+        ),
+        Indicator(
+            id=REAL_INTEREST_RATE,
+            name="Real interest rate",
+            unit="%",
+            unit_symbol="%",
+            description="Lending interest rate adjusted for inflation by the GDP deflator.",
+            source=_WB,
+            source_url=_wb("FR.INR.RINR"),
+            direction=0,
+            decimals=2,
+            valid_range=(-1_000.0, 1_000.0),
+            category=MONEY_EXTERNAL,
+        ),
+        # ------------------------------------------------ public finance
+        Indicator(
+            id=DEBT_TO_GDP,
+            name="Government debt to GDP",
+            unit="% of GDP",
+            unit_symbol="%",
+            description="General government gross debt as a share of GDP (IMF WEO, history only).",
+            source=_IMF,
+            source_url=_imf("GGXWDG_NGDP"),
+            direction=-1,
+            decimals=2,
+            valid_range=(0.0, 1_000.0),
+            category=PUBLIC_FINANCE,
+        ),
+        # ------------------------------------ population & living standards
         Indicator(
             id=POPULATION,
             name="Total population",
             unit="people",
             unit_symbol="",
-            description="Total population, computed as urban plus rural population.",
-            source="Derived: urban + rural population",
-            source_url=_MT_URL,
+            description="Total resident population, mid-year estimate.",
+            source=_WB,
+            source_url=_wb("SP.POP.TOTL"),
             direction=0,
             decimals=0,
-            valid_range=(0.0, 3_000_000_000.0),
-            is_derived=True,
-            depends_on=(URBAN_POPULATION, RURAL_POPULATION),
+            valid_range=(0.0, 10_000_000_000.0),
+            category=PEOPLE,
         ),
         Indicator(
             id=URBAN_POPULATION,
@@ -210,11 +402,12 @@ INDICATORS: dict[str, Indicator] = {
             unit="people",
             unit_symbol="",
             description="Number of people living in urban areas.",
-            source=_MACROTRENDS,
-            source_url=f"{_MT_URL}/global-metrics/countries/ranking/urban-population",
+            source=_WB,
+            source_url=_wb("SP.URB.TOTL"),
             direction=0,
             decimals=0,
-            valid_range=(0.0, 3_000_000_000.0),
+            valid_range=(0.0, 10_000_000_000.0),
+            category=PEOPLE,
         ),
         Indicator(
             id=RURAL_POPULATION,
@@ -222,11 +415,53 @@ INDICATORS: dict[str, Indicator] = {
             unit="people",
             unit_symbol="",
             description="Number of people living in rural areas.",
-            source=_MACROTRENDS,
-            source_url=f"{_MT_URL}/global-metrics/countries/ranking/rural-population",
+            source=_WB,
+            source_url=_wb("SP.RUR.TOTL"),
             direction=0,
             decimals=0,
-            valid_range=(0.0, 3_000_000_000.0),
+            valid_range=(0.0, 10_000_000_000.0),
+            category=PEOPLE,
+        ),
+        Indicator(
+            id=URBANISATION_RATE,
+            name="Urbanisation rate",
+            unit="% of population",
+            unit_symbol="%",
+            description="Share of the population living in urban areas.",
+            source=_WB,
+            source_url=_wb("SP.URB.TOTL.IN.ZS"),
+            direction=0,
+            decimals=2,
+            valid_range=(0.0, 100.0),
+            category=PEOPLE,
+        ),
+        Indicator(
+            id=GINI_INDEX,
+            name="Gini index",
+            unit="0-100",
+            unit_symbol="",
+            description=(
+                "Income or consumption inequality; 0 is perfect equality, 100 perfect inequality."
+            ),
+            source=_WB,
+            source_url=_wb("SI.POV.GINI"),
+            direction=-1,
+            decimals=1,
+            valid_range=(0.0, 100.0),
+            category=PEOPLE,
+        ),
+        Indicator(
+            id=POVERTY_RATE,
+            name="Extreme poverty rate",
+            unit="% of population",
+            unit_symbol="%",
+            description="Share of people living below the international poverty line (2021 PPP).",
+            source=_WB,
+            source_url=_wb("SI.POV.DDAY"),
+            direction=-1,
+            decimals=1,
+            valid_range=(0.0, 100.0),
+            category=PEOPLE,
         ),
     )
 }
@@ -234,7 +469,7 @@ INDICATORS: dict[str, Indicator] = {
 
 @dataclass(frozen=True, slots=True)
 class SourceSpec:
-    """How to read one wide-format vendor CSV."""
+    """How to read one wide-format vendor CSV (legacy sources only)."""
 
     indicator_id: str
     filename: str
@@ -246,20 +481,40 @@ class SourceSpec:
     ignore_columns: frozenset[str] = field(default_factory=frozenset)
 
 
+#: Wide CSVs in ``data/raw/``. Everything else now arrives through the API
+#: snapshot; the files this tuple used to list live in ``data/legacy/`` for
+#: provenance and for the imputation-detection study.
 SOURCES: tuple[SourceSpec, ...] = (
-    SourceSpec(GDP_PER_CAPITA, "gdp_per_capita.csv", name_column="Country Name"),
-    SourceSpec(INFLATION_RATE, "inflation_rate.csv", name_column="Country"),
     SourceSpec(AVG_WAGE, "avg_wage.csv", name_column="Country name"),
-    SourceSpec(DEBT_TO_GDP, "debt_to_gdp.csv", name_column="Country Name"),
-    SourceSpec(
-        HEALTHY_DIET_COST,
-        "healthy_diet_cost.csv",
-        name_column="Entity",
-        code_column="Code",
-    ),
-    SourceSpec(RURAL_POPULATION, "rural_population.csv", name_column="Country Name"),
-    SourceSpec(URBAN_POPULATION, "urban_population.csv", name_column="Country Name"),
 )
+
+#: Indicators loaded from ``data/raw/api/<id>.csv`` (long format, ISO3-keyed).
+API_INDICATORS: tuple[str, ...] = (
+    INFLATION_RATE,
+    CPI_INDEX,
+    GDP_DEFLATOR_INFLATION,
+    HEALTHY_DIET_COST,
+    GDP_PER_CAPITA,
+    GDP_PER_CAPITA_PPP,
+    GDP_GROWTH,
+    UNEMPLOYMENT_RATE,
+    BROAD_MONEY_GROWTH,
+    EXCHANGE_RATE,
+    CURRENT_ACCOUNT,
+    TRADE_OPENNESS,
+    REAL_INTEREST_RATE,
+    DEBT_TO_GDP,
+    POPULATION,
+    URBAN_POPULATION,
+    RURAL_POPULATION,
+    URBANISATION_RATE,
+    GINI_INDEX,
+    POVERTY_RATE,
+)
+
+#: API series that are not indicators: the IMF's own inflation projections,
+#: stored in the ``forecasts`` table as the external benchmark.
+IMF_FORECAST_SERIES = "imf_inflation_forecast"
 
 
 def indicator(indicator_id: str) -> Indicator:

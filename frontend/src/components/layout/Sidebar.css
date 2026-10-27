@@ -131,3 +131,19 @@
     pointer-events: auto;
   }
 }
+
+/* Grouped navigation */
+.nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+.nav-section__title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0 0 4px 16px;
+}

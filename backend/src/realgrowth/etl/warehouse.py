@@ -25,7 +25,7 @@ from realgrowth.etl.registry import CountryRegistry
 from realgrowth.etl.sources import INDICATORS
 from realgrowth.etl.transform import Observation, SeriesFlag
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA = """
 CREATE TABLE countries (
@@ -43,6 +43,7 @@ CREATE TABLE indicators (
     description TEXT NOT NULL,
     source      TEXT NOT NULL,
     source_url  TEXT NOT NULL,
+    category    TEXT NOT NULL,
     direction   INTEGER NOT NULL CHECK (direction IN (-1, 0, 1)),
     decimals    INTEGER NOT NULL,
     is_derived  INTEGER NOT NULL DEFAULT 0 CHECK (is_derived IN (0, 1)),
@@ -72,12 +73,80 @@ CREATE TABLE etl_metadata (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+-- ---------------------------------------------------------------- modelling
+-- Written from the artefacts in data/models/ (produced offline by the
+-- realgrowth_ml package) and from the IMF's published projections. The API
+-- serves predictions; it never trains or scores a model at request time.
+
+CREATE TABLE models (
+    id           TEXT PRIMARY KEY,
+    indicator_id TEXT NOT NULL REFERENCES indicators(id),
+    name         TEXT NOT NULL,
+    kind         TEXT NOT NULL CHECK (kind IN ('ml', 'baseline', 'external')),
+    is_champion  INTEGER NOT NULL DEFAULT 0 CHECK (is_champion IN (0, 1)),
+    description  TEXT NOT NULL,
+    card_json    TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE TABLE forecasts (
+    model_id     TEXT NOT NULL REFERENCES models(id) ON DELETE CASCADE,
+    iso3         TEXT NOT NULL REFERENCES countries(iso3) ON DELETE CASCADE,
+    origin_year  INTEGER NOT NULL,
+    target_year  INTEGER NOT NULL,
+    horizon      INTEGER NOT NULL,
+    point        REAL NOT NULL,
+    lower_80     REAL,
+    upper_80     REAL,
+    lower_95     REAL,
+    upper_95     REAL,
+    PRIMARY KEY (model_id, iso3, target_year)
+) WITHOUT ROWID;
+
+-- Out-of-sample predictions from the rolling-origin backtest, kept so the UI
+-- can show how a model would have performed for one country, not just overall.
+CREATE TABLE backtest_predictions (
+    model_id     TEXT NOT NULL REFERENCES models(id) ON DELETE CASCADE,
+    iso3         TEXT NOT NULL REFERENCES countries(iso3) ON DELETE CASCADE,
+    origin_year  INTEGER NOT NULL,
+    target_year  INTEGER NOT NULL,
+    horizon      INTEGER NOT NULL,
+    actual       REAL NOT NULL,
+    point        REAL NOT NULL,
+    lower_80     REAL,
+    upper_80     REAL,
+    PRIMARY KEY (model_id, iso3, horizon, target_year)
+) WITHOUT ROWID;
+
+-- Per-forecast feature attributions (TreeSHAP), on the model's transformed scale.
+CREATE TABLE forecast_contributions (
+    model_id     TEXT NOT NULL REFERENCES models(id) ON DELETE CASCADE,
+    iso3         TEXT NOT NULL REFERENCES countries(iso3) ON DELETE CASCADE,
+    target_year  INTEGER NOT NULL,
+    feature      TEXT NOT NULL,
+    feature_value REAL,
+    contribution REAL NOT NULL,
+    PRIMARY KEY (model_id, iso3, target_year, feature)
+) WITHOUT ROWID;
+
+-- Likelihood that an observation is an imputation artefact, from the detector
+-- validated in docs/ANOMALY_DETECTION.md.
+CREATE TABLE anomaly_scores (
+    indicator_id TEXT NOT NULL REFERENCES indicators(id) ON DELETE CASCADE,
+    iso3         TEXT NOT NULL REFERENCES countries(iso3) ON DELETE CASCADE,
+    year         INTEGER NOT NULL,
+    score        REAL NOT NULL,
+    is_flagged   INTEGER NOT NULL CHECK (is_flagged IN (0, 1)),
+    PRIMARY KEY (indicator_id, iso3, year)
+) WITHOUT ROWID;
 """
 
 INDEXES = """
 CREATE INDEX idx_obs_indicator_year ON observations (indicator_id, year);
 CREATE INDEX idx_obs_iso3           ON observations (iso3);
 CREATE INDEX idx_countries_region   ON countries (region) WHERE is_aggregate = 0;
+CREATE INDEX idx_forecasts_iso3     ON forecasts (iso3);
+CREATE INDEX idx_backtest_iso3      ON backtest_predictions (iso3, model_id);
 """
 
 
@@ -128,6 +197,7 @@ def insert_indicators(connection: sqlite3.Connection) -> int:
             ind.description,
             ind.source,
             ind.source_url,
+            ind.category,
             ind.direction,
             ind.decimals,
             int(ind.is_derived),
@@ -138,9 +208,9 @@ def insert_indicators(connection: sqlite3.Connection) -> int:
     connection.executemany(
         """
         INSERT INTO indicators (
-            id, name, unit, unit_symbol, description, source, source_url,
+            id, name, unit, unit_symbol, description, source, source_url, category,
             direction, decimals, is_derived, depends_on
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         rows,
     )

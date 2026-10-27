@@ -10,17 +10,45 @@ interface NavLinkItem {
   badge?: string;
 }
 
-const NAV_LINKS: NavLinkItem[] = [
-  { path: "/", label: "Dashboard", icon: "📊" },
-  { path: "/correlation", label: "Correlation Explorer", icon: "🔬", badge: "NEW" },
-  { path: "/indicators/real_wage_growth", label: "Real Wage Growth", icon: "🚀" },
-  { path: "/indicators/gdp_per_capita", label: "GDP Per Capita", icon: "💰" },
-  { path: "/indicators/inflation_rate", label: "Inflation", icon: "📈" },
-  { path: "/indicators/avg_wage", label: "Average Wages", icon: "💵" },
-  { path: "/indicators/debt_to_gdp", label: "Debt to GDP", icon: "🏦" },
-  { path: "/indicators/healthy_diet_cost", label: "Cost of a Healthy Diet", icon: "🍲" },
-  { path: "/indicators/population", label: "Population", icon: "👥" },
-  { path: "/data-quality", label: "Data Quality", icon: "🔎" },
+interface NavSection {
+  title: string;
+  links: NavLinkItem[];
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    title: "Overview",
+    links: [{ path: "/", label: "Dashboard", icon: "📊" }],
+  },
+  {
+    title: "Tools",
+    links: [
+      { path: "/forecasts", label: "Inflation Outlook", icon: "🔮", badge: "ML" },
+      { path: "/purchasing-power", label: "Purchasing Power", icon: "🧮" },
+      { path: "/correlation", label: "Correlation Explorer", icon: "🔬" },
+    ],
+  },
+  {
+    title: "Indicators",
+    links: [
+      { path: "/indicators/real_wage_growth", label: "Real Wage Growth", icon: "🚀" },
+      { path: "/indicators/inflation_rate", label: "Inflation", icon: "📈" },
+      { path: "/indicators/gdp_per_capita_ppp", label: "GDP Per Capita (PPP)", icon: "💰" },
+      { path: "/indicators/gdp_growth", label: "GDP Growth", icon: "🏭" },
+      { path: "/indicators/unemployment_rate", label: "Unemployment", icon: "👷" },
+      { path: "/indicators/debt_to_gdp", label: "Government Debt", icon: "🏦" },
+      { path: "/indicators/healthy_diet_cost", label: "Cost of a Healthy Diet", icon: "🍲" },
+      { path: "/indicators/poverty_rate", label: "Extreme Poverty", icon: "🧭" },
+      { path: "/indicators/population", label: "Population", icon: "👥" },
+    ],
+  },
+  {
+    title: "Transparency",
+    links: [
+      { path: "/models", label: "Models & Methodology", icon: "🧠" },
+      { path: "/data-quality", label: "Data Quality", icon: "🔎" },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -54,20 +82,30 @@ export function Sidebar() {
         </div>
 
         <nav className="sidebar-nav" aria-label="Primary">
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.path}
-              to={link.path}
-              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-            >
-              <span className="nav-icon" aria-hidden="true">
-                {link.icon}
-              </span>
-              <span>
-                {link.label}
-                {link.badge && <span className="badge badge--new" style={{ marginLeft: 8 }}>{link.badge}</span>}
-              </span>
-            </NavLink>
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.title} className="nav-section">
+              <p className="nav-section__title">{section.title}</p>
+              {section.links.map((link) => (
+                <NavLink
+                  key={link.path}
+                  to={link.path}
+                  end={link.path === "/"}
+                  className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+                >
+                  <span className="nav-icon" aria-hidden="true">
+                    {link.icon}
+                  </span>
+                  <span>
+                    {link.label}
+                    {link.badge && (
+                      <span className="badge badge--new" style={{ marginLeft: 8 }}>
+                        {link.badge}
+                      </span>
+                    )}
+                  </span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 

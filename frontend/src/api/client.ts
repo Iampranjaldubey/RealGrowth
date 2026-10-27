@@ -15,11 +15,18 @@
  */
 
 import type {
+  AnomalyModelCard,
+  AnomalyScore,
   ApiErrorPayload,
   CorrelationResponse,
   Country,
+  CountryForecastResponse,
   CountryProfileResponse,
+  ForecastModel,
+  ForecastSnapshotResponse,
   Indicator,
+  InflationModelCard,
+  PurchasingPowerResponse,
   QualityReport,
   SeriesResponse,
   SnapshotResponse,
@@ -166,4 +173,46 @@ export const api = {
     ),
 
   getQualityReport: (signal?: AbortSignal) => request<QualityReport>("/v1/meta/quality", signal),
+
+  listModels: (indicator?: string, signal?: AbortSignal) =>
+    request<ForecastModel[]>(`/v1/models${buildQuery({ indicator })}`, signal),
+
+  getInflationModelCard: (signal?: AbortSignal) =>
+    request<InflationModelCard>("/v1/models/inflation/card", signal),
+
+  getAnomalyModelCard: (signal?: AbortSignal) =>
+    request<AnomalyModelCard>("/v1/models/anomaly/card", signal),
+
+  getCountryForecast: (iso3: string, signal?: AbortSignal) =>
+    request<CountryForecastResponse>(`/v1/forecasts/${segment(iso3)}`, signal),
+
+  getForecastSnapshot: (horizon: number, signal?: AbortSignal) =>
+    request<ForecastSnapshotResponse>(`/v1/forecasts${buildQuery({ horizon })}`, signal),
+
+  getAnomalies: (
+    options: { indicator?: string; country?: string; flaggedOnly?: boolean } = {},
+    signal?: AbortSignal,
+  ) =>
+    request<AnomalyScore[]>(
+      `/v1/anomalies${buildQuery({
+        indicator: options.indicator,
+        country: options.country,
+        flagged_only: options.flaggedOnly,
+      })}`,
+      signal,
+    ),
+
+  purchasingPower: (
+    params: { country: string; amount: number; fromYear: number; toYear: number },
+    signal?: AbortSignal,
+  ) =>
+    request<PurchasingPowerResponse>(
+      `/v1/tools/purchasing-power${buildQuery({
+        country: params.country,
+        amount: params.amount,
+        from_year: params.fromYear,
+        to_year: params.toYear,
+      })}`,
+      signal,
+    ),
 };

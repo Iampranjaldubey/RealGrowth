@@ -28,6 +28,7 @@ from realgrowth.repository import Repository  # noqa: E402
 
 RAW_DIR = REPO_ROOT / "data" / "raw"
 REFERENCE_CSV = REPO_ROOT / "data" / "reference" / "countries.csv"
+MODELS_DIR = REPO_ROOT / "data" / "models"
 
 
 @pytest.fixture(scope="session")
@@ -118,11 +119,11 @@ def tiny_repo(tiny_db: sqlite3.Connection) -> Repository:
 
 @pytest.fixture(scope="session")
 def real_warehouse(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Build the warehouse from the committed raw CSVs once per session."""
+    """Build the warehouse from the committed snapshots once per session."""
     if not RAW_DIR.is_dir():  # pragma: no cover - guards a broken checkout
         pytest.skip(f"raw data not available at {RAW_DIR}")
     target = tmp_path_factory.mktemp("warehouse") / "realgrowth.db"
-    run_etl(RAW_DIR, REFERENCE_CSV, target)
+    run_etl(RAW_DIR, REFERENCE_CSV, target, models_dir=MODELS_DIR)
     return target
 
 

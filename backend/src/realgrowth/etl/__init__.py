@@ -1,10 +1,10 @@
-"""ETL pipeline: raw vendor CSVs -> normalised SQLite warehouse.
+"""ETL pipeline: API snapshots + legacy CSV -> normalised SQLite warehouse.
 
-The pipeline is deliberately implemented with the Python standard library only
-(``csv`` + ``sqlite3``). The dataset is ~4k rows of wide-format CSV, so pandas
-would add ~50 MB of image weight and a multi-second import cost for no benefit,
-and keeping it dependency-free means the whole data layer is unit-testable
-anywhere Python runs.
+Implemented with the Python standard library only (``csv`` + ``sqlite3``), so
+the data layer runs on the deploy host and in CI without the data-science
+stack, and is unit-testable anywhere Python runs. About 200k observations
+build in a few seconds. Offline model outputs (``data/models/``) are loaded
+by :mod:`realgrowth.etl.artifacts` through a plain-file contract.
 """
 
 from realgrowth.etl.pipeline import run_etl

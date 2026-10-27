@@ -7,16 +7,18 @@ from pathlib import Path
 import pytest
 
 from realgrowth.etl.pipeline import StrictModeError, run_etl
+from realgrowth.etl.sources import API_INDICATORS
 
 
 def _write_csv(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
 
 
 @pytest.fixture
 def raw_dir(tmp_path: Path) -> Path:
     directory = tmp_path / "raw"
-    directory.mkdir()
+    (directory / "api").mkdir(parents=True)
     return directory
 
 
@@ -32,24 +34,19 @@ def reference_csv(tmp_path: Path) -> Path:
     return path
 
 
-def _write_all_sources(raw_dir: Path, *, gdp_extra_row: str = "") -> None:
-    _write_csv(
-        raw_dir / "gdp_per_capita.csv",
-        "Country Name,2020,2021\nUnited States,63000,70000\nIndia,1900,2100\n" + gdp_extra_row,
-    )
-    _write_csv(
-        raw_dir / "inflation_rate.csv", "Country,2020,2021\nUnited States,1.2,4.7\nIndia,6.6,5.1\n"
-    )
+def _write_all_sources(raw_dir: Path, *, skip: str | None = None) -> None:
+    """A minimal but complete snapshot: every API series plus the wage CSV."""
+    for indicator_id in API_INDICATORS:
+        if indicator_id == skip:
+            continue
+        _write_csv(
+            raw_dir / "api" / f"{indicator_id}.csv",
+            "iso3,year,value\nUSA,2020,1.5\nUSA,2021,2.5\nIND,2020,5.0\nIND,2021,6.0\n",
+        )
     _write_csv(
         raw_dir / "avg_wage.csv",
         ",Country name,2020,2021\n0,United States,4000,4200\n1,India,150,160\n",
     )
-    _write_csv(raw_dir / "debt_to_gdp.csv", "Country Name,2021,2020\nUnited States,120,110\n")
-    _write_csv(
-        raw_dir / "healthy_diet_cost.csv", "Unnamed: 0,Entity,Code,2020\n0,United States,USA,3.5\n"
-    )
-    _write_csv(raw_dir / "rural_population.csv", "Country Name,2021\nUnited States,60000000\n")
-    _write_csv(raw_dir / "urban_population.csv", "Country Name,2021\nUnited States,270000000\n")
 
 
 class TestStrictMode:
@@ -60,19 +57,37 @@ class TestStrictMode:
         report = run_etl(raw_dir, reference_csv, tmp_path / "out.db", strict=True)
         assert report.total_observations > 0
 
-    def test_unresolved_entity_fails_strict_mode(
+    def test_unknown_code_in_snapshot_fails_strict_mode(
         self, raw_dir: Path, reference_csv: Path, tmp_path: Path
     ) -> None:
-        _write_all_sources(raw_dir, gdp_extra_row="Atlantis,1000,1000\n")
+        _write_all_sources(raw_dir)
+        _write_csv(raw_dir / "api" / "gdp_per_capita.csv", "iso3,year,value\nATL,2020,1000\n")
+        with pytest.raises(StrictModeError, match="unresolved_entity"):
+            run_etl(raw_dir, reference_csv, tmp_path / "out.db", strict=True)
+
+    def test_unresolved_wage_label_fails_strict_mode(
+        self, raw_dir: Path, reference_csv: Path, tmp_path: Path
+    ) -> None:
+        _write_all_sources(raw_dir)
+        _write_csv(raw_dir / "avg_wage.csv", ",Country name,2020\n0,Atlantis,100\n")
         with pytest.raises(StrictModeError, match="unresolved_entity"):
             run_etl(raw_dir, reference_csv, tmp_path / "out.db", strict=True)
 
     def test_unresolved_entity_does_not_fail_non_strict_mode(
         self, raw_dir: Path, reference_csv: Path, tmp_path: Path
     ) -> None:
-        _write_all_sources(raw_dir, gdp_extra_row="Atlantis,1000,1000\n")
+        _write_all_sources(raw_dir)
+        _write_csv(raw_dir / "avg_wage.csv", ",Country name,2020\n0,Atlantis,100\n")
         report = run_etl(raw_dir, reference_csv, tmp_path / "out.db", strict=False)
         assert "Atlantis" in report.unresolved_entities
+
+    def test_missing_snapshot_file_fails_strict_mode(
+        self, raw_dir: Path, reference_csv: Path, tmp_path: Path
+    ) -> None:
+        """A series silently vanishing from the snapshot is a defect, not a gap."""
+        _write_all_sources(raw_dir, skip="inflation_rate")
+        with pytest.raises(StrictModeError, match="missing_source"):
+            run_etl(raw_dir, reference_csv, tmp_path / "out.db", strict=True)
 
     def test_out_of_range_value_does_not_fail_strict_mode(
         self, raw_dir: Path, reference_csv: Path, tmp_path: Path
@@ -81,8 +96,8 @@ class TestStrictMode:
         that should block a build — see FATAL_ISSUE_KINDS."""
         _write_all_sources(raw_dir)
         _write_csv(
-            raw_dir / "gdp_per_capita.csv",
-            "Country Name,2020,2021\nUnited States,63000,70000\nIndia,1900,-999999\n",
+            raw_dir / "api" / "gdp_per_capita.csv",
+            "iso3,year,value\nUSA,2020,63000\nIND,2021,-999999\n",
         )
         report = run_etl(raw_dir, reference_csv, tmp_path / "out.db", strict=True)
         assert report.issue_counts.get("out_of_range", 0) >= 1

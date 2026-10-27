@@ -3,7 +3,8 @@
 # In the Render dashboard: New > Blueprint, connect this repo, and two free
 # services come up:
 #   realgrowth-api   FastAPI; builds the SQLite warehouse from the committed
-#                    CSVs at deploy time (stdlib ETL, no pandas).
+#                    API snapshot and model artefacts at deploy time
+#                    (stdlib ETL, no pandas or LightGBM on the server).
 #   realgrowth-web   the React build, served as static files over Render's CDN.
 #
 # Two URLs can only be known after the first deploy, so they're marked

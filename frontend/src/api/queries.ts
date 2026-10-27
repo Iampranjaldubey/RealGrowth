@@ -150,3 +150,59 @@ export function useQualityReport() {
     queryFn: ({ signal }) => api.getQualityReport(signal),
   });
 }
+
+// Model outputs change only when the warehouse is rebuilt, so cache them for
+// the session.
+
+export function useInflationModelCard() {
+  return useQuery({
+    queryKey: ["models", "inflation", "card"],
+    queryFn: ({ signal }) => api.getInflationModelCard(signal),
+    staleTime: Infinity,
+  });
+}
+
+export function useAnomalyModelCard() {
+  return useQuery({
+    queryKey: ["models", "anomaly", "card"],
+    queryFn: ({ signal }) => api.getAnomalyModelCard(signal),
+    staleTime: Infinity,
+  });
+}
+
+export function useCountryForecast(iso3: string | undefined) {
+  return useQuery({
+    queryKey: ["forecasts", iso3],
+    queryFn: ({ signal }) => api.getCountryForecast(iso3 as string, signal),
+    enabled: Boolean(iso3),
+    staleTime: Infinity,
+  });
+}
+
+export function useForecastSnapshot(horizon: number) {
+  return useQuery({
+    queryKey: ["forecasts", "snapshot", horizon],
+    queryFn: ({ signal }) => api.getForecastSnapshot(horizon, signal),
+    staleTime: Infinity,
+  });
+}
+
+export function useAnomalies(country: string | undefined) {
+  return useQuery({
+    queryKey: ["anomalies", country],
+    queryFn: ({ signal }) => api.getAnomalies({ country }, signal),
+    enabled: Boolean(country),
+    staleTime: Infinity,
+  });
+}
+
+export function usePurchasingPower(
+  params: { country: string; amount: number; fromYear: number; toYear: number } | null,
+) {
+  return useQuery({
+    queryKey: ["purchasing-power", params],
+    queryFn: ({ signal }) => api.purchasingPower(params as NonNullable<typeof params>, signal),
+    enabled: params !== null,
+    retry: false, // a 400 here is a user input problem, not a transient failure
+  });
+}

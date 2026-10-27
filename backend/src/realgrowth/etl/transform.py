@@ -230,6 +230,74 @@ def load_source(
     return extract(table, spec, registry, meta)
 
 
+#: Header of every API snapshot file written by :mod:`realgrowth.ingest.snapshot`.
+API_HEADER = ("iso3", "year", "value")
+
+
+def load_api_source(
+    api_dir: str | Path,
+    registry: CountryRegistry,
+    meta: Indicator,
+) -> tuple[list[Observation], list[Issue]]:
+    """Read one long-format API snapshot (``iso3,year,value``).
+
+    The connectors already mapped upstream codes to registry ISO3s, so an
+    unknown code here means the registry and the snapshot have drifted apart —
+    reported as ``unresolved_entity``, which fails a strict build. A missing
+    snapshot file is reported as ``missing_source``.
+    """
+    path = Path(api_dir) / f"{meta.id}.csv"
+    if not path.is_file():
+        return [], [
+            Issue(
+                kind="missing_source",
+                indicator_id=meta.id,
+                detail=f"{path.name} not found; run `python -m realgrowth.ingest`",
+            )
+        ]
+
+    observations: list[Observation] = []
+    issues: list[Issue] = []
+    unresolved: set[str] = set()
+    low, high = meta.valid_range
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.reader(handle)
+        header = tuple(next(reader, ()))
+        if header != API_HEADER:
+            raise ValueError(f"{path.name}: expected header {API_HEADER}, found {header}")
+        for iso3, year_text, value_text in reader:
+            if iso3 not in registry:
+                unresolved.add(iso3)
+                continue
+            value = parse_number(value_text)
+            if value is None:
+                continue
+            year = int(year_text)
+            if not low <= value <= high:
+                issues.append(
+                    Issue(
+                        kind="out_of_range",
+                        indicator_id=meta.id,
+                        entity=iso3,
+                        year=year,
+                        detail=f"{value!r} outside valid range [{low}, {high}]; dropped",
+                    )
+                )
+                continue
+            observations.append(Observation(meta.id, iso3, year, value))
+
+    issues.extend(
+        Issue(
+            kind="unresolved_entity",
+            indicator_id=meta.id,
+            entity=code,
+            detail=f"{code!r} in {path.name} is not in data/reference/countries.csv",
+        )
+        for code in sorted(unresolved)
+    )
+    return observations, issues
+
+
 def group_series(
     observations: Iterator[Observation] | list[Observation],
 ) -> dict[tuple[str, str], dict[int, float]]:

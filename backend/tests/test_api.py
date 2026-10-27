@@ -52,12 +52,16 @@ class TestHealth:
 
 
 class TestIndicators:
-    def test_lists_all_eleven_indicators(self, client: TestClient) -> None:
+    def test_lists_every_catalogued_indicator(self, client: TestClient) -> None:
+        from realgrowth.etl.sources import CATEGORIES, INDICATORS
+
         response = client.get("/api/v1/indicators")
         assert response.status_code == 200
-        ids = {i["id"] for i in response.json()}
+        body = response.json()
+        ids = {i["id"] for i in body}
         assert "real_wage_growth" in ids
-        assert len(ids) == 11
+        assert ids == set(INDICATORS)
+        assert {i["category"] for i in body} <= set(CATEGORIES)
 
     def test_unknown_indicator_is_404_with_the_standard_error_shape(
         self, client: TestClient
@@ -176,7 +180,7 @@ class TestMeta:
         assert response.status_code == 200
         body = response.json()
         assert body["total_observations"] > 20_000
-        assert "avg_wage:volatile_levels" in body["flag_counts"]
+        assert any(key.startswith("avg_wage:") for key in body["flag_counts"])
 
     def test_openapi_schema_is_generated(self, client: TestClient) -> None:
         """A smoke test that every response_model is well-formed enough to

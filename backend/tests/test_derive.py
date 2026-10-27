@@ -1,9 +1,10 @@
-"""Derived indicators: nominal/real wage growth and population aggregates.
+"""Derived indicators: the local-currency wage chain.
 
-These tests encode the two most important findings from reverse-engineering the
-original dataset: real wage growth equals nominal wage growth minus inflation,
-and the old artefact fabricated values by treating "no wage data" as "0% nominal
-growth". Both regressions are pinned here.
+These tests encode the findings from reverse-engineering the original dataset:
+real wage growth equals nominal wage growth minus inflation; the old artefact
+fabricated values by treating "no wage data" as "0% nominal growth"; and growth
+must be computed in local currency, not in US dollars, or a depreciation is
+misread as a real-wage collapse.
 """
 
 from __future__ import annotations
@@ -13,20 +14,18 @@ import pytest
 from realgrowth.etl.derive import (
     derive_all,
     derive_nominal_wage_growth,
-    derive_population,
     derive_real_wage_growth,
+    derive_wage_lcu,
     is_implausible_growth,
     year_on_year_change,
 )
 from realgrowth.etl.sources import (
     AVG_WAGE,
+    AVG_WAGE_LCU,
+    EXCHANGE_RATE,
     INFLATION_RATE,
     NOMINAL_WAGE_GROWTH,
-    POPULATION,
     REAL_WAGE_GROWTH,
-    RURAL_POPULATION,
-    URBAN_POPULATION,
-    URBANISATION_RATE,
 )
 
 
@@ -53,21 +52,58 @@ class TestImplausibleGrowth:
         assert not is_implausible_growth(-15.0, 3.0)
 
     def test_large_unexplained_move_is_implausible(self) -> None:
-        # Spain 2022: +147.5% wage move against 8.4% inflation.
+        # Spain 2022 in the original data: +147.5% wage move against 8.4% inflation.
         assert is_implausible_growth(147.5, 8.4)
 
     def test_large_move_explained_by_inflation_is_plausible(self) -> None:
-        # Zimbabwe-like: triple-digit inflation legitimately drives large moves.
-        assert not is_implausible_growth(-162.4, 120.0)
+        # Triple-digit inflation legitimately drives triple-digit nominal wage moves.
+        assert not is_implausible_growth(150.0, 120.0)
 
     def test_large_move_with_no_inflation_data_is_implausible(self) -> None:
         assert is_implausible_growth(80.0, None)
 
 
+class TestDeriveWageLcu:
+    def test_multiplies_usd_wage_by_exchange_rate(self) -> None:
+        series = {
+            (AVG_WAGE, "IND"): {2020: 200.0, 2021: 210.0},
+            (EXCHANGE_RATE, "IND"): {2020: 74.0, 2021: 73.9},
+        }
+        obs, issues, _ = derive_wage_lcu(series)
+        by_year = {o.year: o.value for o in obs}
+        assert by_year[2020] == pytest.approx(14_800.0)
+        assert by_year[2021] == pytest.approx(210.0 * 73.9)
+        assert issues == []
+
+    def test_no_exchange_rate_means_no_local_wage(self) -> None:
+        """A missing rate must leave a gap, not assume parity with the dollar."""
+        series = {
+            (AVG_WAGE, "IND"): {2020: 200.0, 2021: 210.0},
+            (EXCHANGE_RATE, "IND"): {2020: 74.0},
+        }
+        obs, _, _ = derive_wage_lcu(series)
+        assert {o.year for o in obs} == {2020}
+
+    def test_depreciation_does_not_look_like_a_pay_cut(self) -> None:
+        """The defect the local-currency chain fixes.
+
+        Local pay rises 10% while the currency halves against the dollar, so
+        the USD wage falls 45%. In local currency nominal growth is +10%.
+        """
+        series = {
+            (AVG_WAGE, "TUR"): {2020: 1_000.0, 2021: 550.0},
+            (EXCHANGE_RATE, "TUR"): {2020: 7.0, 2021: 14.0},
+            (INFLATION_RATE, "TUR"): {2020: 12.0, 2021: 19.6},
+        }
+        produced, _, _ = derive_all(series)
+        nominal = [o for o in produced if o.indicator_id == NOMINAL_WAGE_GROWTH]
+        assert nominal[0].value == pytest.approx(10.0)
+
+
 class TestDeriveNominalWageGrowth:
     def test_computes_growth_from_wage_levels(self) -> None:
         series = {
-            (AVG_WAGE, "IND"): {2020: 100.0, 2021: 110.0, 2022: 121.0},
+            (AVG_WAGE_LCU, "IND"): {2020: 100.0, 2021: 110.0, 2022: 121.0},
             (INFLATION_RATE, "IND"): {2020: 5.0, 2021: 5.0, 2022: 5.0},
         }
         obs, issues, flags = derive_nominal_wage_growth(series)
@@ -79,7 +115,7 @@ class TestDeriveNominalWageGrowth:
     def test_rejects_implausible_transition_and_flags_series(self) -> None:
         series = {
             # 2022 jumps +150% with only 8% inflation to explain it.
-            (AVG_WAGE, "ESP"): {2020: 2000.0, 2021: 2100.0, 2022: 5250.0},
+            (AVG_WAGE_LCU, "ESP"): {2020: 2000.0, 2021: 2100.0, 2022: 5250.0},
             (INFLATION_RATE, "ESP"): {2020: 1.0, 2021: 2.0, 2022: 8.4},
         }
         obs, issues, flags = derive_nominal_wage_growth(series)
@@ -90,16 +126,36 @@ class TestDeriveNominalWageGrowth:
         assert {f.flag for f in flags} == {"volatile_levels", "partial_coverage"}
         assert {f.indicator_id for f in flags} == {
             AVG_WAGE,
+            AVG_WAGE_LCU,
             NOMINAL_WAGE_GROWTH,
             REAL_WAGE_GROWTH,
         }
 
     def test_missing_inflation_still_allows_plausible_growth(self) -> None:
         """A country with no inflation series shouldn't lose good wage data."""
-        series = {(AVG_WAGE, "XYZ"): {2020: 100.0, 2021: 112.0}}
+        series = {(AVG_WAGE_LCU, "XYZ"): {2020: 100.0, 2021: 112.0}}
         obs, issues, flags = derive_nominal_wage_growth(series)
         assert obs[0].value == pytest.approx(12.0)
         assert flags == []
+
+    def test_known_imputed_cells_block_both_adjacent_transitions(self) -> None:
+        """A growth rate with an invented endpoint is not a measurement, even
+        when it is small enough to pass the plausibility rule."""
+        series = {
+            (AVG_WAGE_LCU, "FRA"): {2019: 100.0, 2020: 103.0, 2021: 105.0, 2022: 108.0},
+            (INFLATION_RATE, "FRA"): {2020: 0.5, 2021: 1.6, 2022: 5.2},
+        }
+        obs, issues, flags = derive_nominal_wage_growth(series, frozenset({("FRA", 2021)}))
+        assert {o.year for o in obs} == {2020}
+        assert {i.year for i in issues if i.kind == "imputed_input"} == {2021, 2022}
+        details = {f.indicator_id: f.detail for f in flags if f.flag == "imputed_inputs"}
+        assert "2021-2022" in details[REAL_WAGE_GROWTH]
+
+    def test_year_span_compacts_runs(self) -> None:
+        from realgrowth.etl.derive import _year_span
+
+        assert _year_span([2006, 2007, 2008, 2012, 2014, 2015]) == "2006-2008, 2012, 2014-2015"
+        assert _year_span([2020]) == "2020"
 
 
 class TestDeriveRealWageGrowth:
@@ -138,39 +194,19 @@ class TestDeriveRealWageGrowth:
         """
         series = {
             (AVG_WAGE, "AFG"): {2020: 171.87},  # last real observation
+            (EXCHANGE_RATE, "AFG"): {2020: 76.8, 2021: 83.6, 2022: 90.0},
             (INFLATION_RATE, "AFG"): {2020: 5.6, 2021: 5.1, 2022: 13.7},
         }
-        nominal, _, _ = derive_nominal_wage_growth(series)
-        assert nominal == []  # no 2021/2022 wage level -> no growth rate at all
-
-        full_series = dict(series)
-        full_series[(NOMINAL_WAGE_GROWTH, "AFG")] = {}
-        real, _, _ = derive_real_wage_growth(full_series)
-        assert real == []
-
-
-class TestDerivePopulation:
-    def test_total_and_urbanisation_rate(self) -> None:
-        series = {
-            (URBAN_POPULATION, "IND"): {2022: 600.0},
-            (RURAL_POPULATION, "IND"): {2022: 400.0},
-        }
-        obs, issues, _ = derive_population(series)
-        by_indicator = {o.indicator_id: o.value for o in obs}
-        assert by_indicator[POPULATION] == pytest.approx(1000.0)
-        assert by_indicator[URBANISATION_RATE] == pytest.approx(60.0)
-
-    def test_requires_both_urban_and_rural(self) -> None:
-        series = {(URBAN_POPULATION, "SGP"): {2022: 5_000_000.0}}  # city-state, no rural row
-        obs, _, _ = derive_population(series)
-        assert obs == []
+        produced, _, _ = derive_all(series)
+        assert [o for o in produced if o.indicator_id == REAL_WAGE_GROWTH] == []
 
 
 class TestDeriveAll:
     def test_real_growth_uses_freshly_derived_nominal_growth(self) -> None:
-        """derive_all must feed nominal growth back in before computing real growth."""
+        """derive_all must feed each step's output into the next."""
         series = {
             (AVG_WAGE, "IND"): {2020: 100.0, 2021: 112.0},
+            (EXCHANGE_RATE, "IND"): {2020: 1.0, 2021: 1.0},
             (INFLATION_RATE, "IND"): {2021: 5.0},
         }
         produced, issues, flags = derive_all(series)

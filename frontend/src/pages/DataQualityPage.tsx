@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useQualityReport } from "@/api/queries";
 import { formatNumber } from "@/lib/formatters";
 
@@ -90,10 +91,11 @@ export function DataQualityPage() {
             </ul>
           )}
           <p style={{ marginTop: 12, fontSize: "0.85rem" }}>
-            Most flags are on <code>avg_wage</code>: the upstream source imputed missing months by
-            scaling the world average, which occasionally produces a wage jump with no matching
-            inflation to explain it. Those transitions are excluded from wage-growth figures rather
-            than plotted as real movement.
+            Most flags are on the wage series: the original source filled missing years by scaling
+            the cross-country average, which sometimes produces a wage jump with no matching
+            inflation. Those transitions are excluded from wage-growth figures rather than plotted as
+            real movement. The <Link to="/models">methodology page</Link> measures how many artefacts this
+            rule catches and compares it with a machine-learning detector.
           </p>
         </div>
       </div>
@@ -116,6 +118,7 @@ function describeIssueKind(kind: string): string {
     duplicate_entity: "Duplicate country conflicts",
     out_of_range: "Values outside a plausible range",
     implausible_growth: "Wage-growth transitions rejected as imputation artefacts",
+    missing_source: "Snapshot files missing",
   };
   return labels[kind] ?? kind;
 }

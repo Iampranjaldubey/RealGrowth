@@ -42,6 +42,7 @@ class Indicator(ApiModel):
     description: str
     source: str
     source_url: str
+    category: str
     direction: int = Field(description="1 = higher is better, -1 = lower is better, 0 = neutral")
     decimals: int
     is_derived: bool
@@ -171,3 +172,120 @@ class HealthResponse(ApiModel):
     name: str
     version: str
     environment: str
+
+
+# ------------------------------------------------------------- forecasting
+
+
+class ForecastModel(ApiModel):
+    id: str
+    indicator_id: str
+    name: str
+    kind: str = Field(description="'ml', 'baseline' or 'external' (the IMF benchmark)")
+    is_champion: bool
+    description: str
+
+
+class HistoryPoint(ApiModel):
+    year: int
+    value: float
+
+
+class ForecastPoint(ApiModel):
+    origin_year: int
+    target_year: int
+    horizon: int
+    point: float
+    lower_80: float | None
+    upper_80: float | None
+    lower_95: float | None
+    upper_95: float | None
+
+
+class ModelForecasts(ApiModel):
+    model_id: str
+    points: list[ForecastPoint]
+
+
+class BacktestPoint(ApiModel):
+    origin_year: int
+    target_year: int
+    horizon: int
+    actual: float
+    point: float
+    lower_80: float | None
+    upper_80: float | None
+
+
+class ModelBacktest(ApiModel):
+    model_id: str
+    points: list[BacktestPoint]
+
+
+class Contribution(ApiModel):
+    feature: str
+    feature_value: float | None
+    contribution: float = Field(description="TreeSHAP value on the signed-log scale")
+
+
+class ForecastDrivers(ApiModel):
+    target_year: int
+    contributions: list[Contribution]
+
+
+class CountryForecastResponse(ApiModel):
+    country: Country
+    indicator: Indicator
+    champion: ForecastModel
+    history: list[HistoryPoint]
+    forecasts: list[ModelForecasts]
+    backtest: list[ModelBacktest]
+    drivers: list[ForecastDrivers]
+
+
+class ForecastSnapshotValue(ApiModel):
+    iso3: str
+    country: str
+    region: str | None
+    origin_year: int
+    target_year: int
+    point: float
+    lower_80: float | None
+    upper_80: float | None
+
+
+class ForecastSnapshotResponse(ApiModel):
+    model: ForecastModel
+    horizon: int
+    values: list[ForecastSnapshotValue]
+
+
+class AnomalyScore(ApiModel):
+    iso3: str
+    country: str
+    year: int
+    score: float = Field(description="Out-of-fold P(cell is an imputation artefact)")
+    is_flagged: bool
+
+
+# ------------------------------------------------------------------ tools
+
+
+class PurchasingPowerPoint(ApiModel):
+    year: int
+    index: float
+    value: float
+    projected: bool
+
+
+class PurchasingPowerResponse(ApiModel):
+    country: Country
+    amount: float
+    from_year: int
+    to_year: int
+    equivalent: float
+    cumulative_inflation_pct: float
+    annualised_inflation_pct: float
+    uses_projection: bool
+    last_observed_year: int
+    path: list[PurchasingPowerPoint]

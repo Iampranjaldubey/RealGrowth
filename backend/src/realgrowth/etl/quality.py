@@ -1,10 +1,11 @@
 """Data-quality reporting.
 
-Four of the seven raw files were produced by an upstream notebook that imputed
-missing values using an ad-hoc "scale the world average by this country's average
-ratio" rule, and it did so without recording which cells were invented. That
-cannot be undone downstream, so the honest response is to measure and publish
-coverage rather than let a dense-looking chart imply complete data.
+The original project's raw files were gap-filled by an undocumented "scale the
+world average by this country's average ratio" rule. Most series now come from
+the publishers' APIs instead; the remaining wage panel's imputed cells are
+identified forensically (see docs/ANOMALY_DETECTION.md). Either way the honest
+response is to measure and publish coverage and caveats rather than let a
+dense-looking chart imply complete data.
 
 The report this module builds is stored in the warehouse and served at
 ``/api/v1/meta/quality`` so the limitation is visible in the product, not buried

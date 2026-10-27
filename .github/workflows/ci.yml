@@ -43,6 +43,34 @@ jobs:
           name: backend-coverage
           path: backend/coverage.xml
 
+  ml:
+    name: ML (lint, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ml
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ml/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint (ruff)
+        run: ruff check src tests scripts && ruff format --check src tests
+
+      - name: Test (pytest)
+        # Leakage, backtest-split, conformal-coverage, SHAP and label-recovery
+        # tests run on synthetic panels, so this job needs no warehouse.
+        run: pytest
+        env:
+          PYTHONPATH: src:../backend/src
+
   etl-strict:
     name: ETL (strict data-quality gate)
     runs-on: ubuntu-latest
@@ -53,14 +81,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Verify snapshot checksums
+        run: python -m realgrowth.ingest --verify
+        env:
+          PYTHONPATH: backend/src
+
       - name: Build warehouse in strict mode
-        # --strict fails the build if the ETL finds any unresolved country,
-        # duplicate entity, or out-of-range value: a silent data regression
-        # blocks CI instead of shipping.
+        # Stdlib only: no pip install. --strict fails on an unresolved country,
+        # a duplicate country-year or a missing snapshot file, so a silent data
+        # regression blocks CI instead of shipping.
         run: |
           python -m realgrowth.etl \
             --raw-dir data/raw \
             --reference data/reference/countries.csv \
+            --models data/models \
             --output /tmp/realgrowth.db \
             --report /tmp/quality-report.json \
             --strict
@@ -86,14 +120,12 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: frontend/package.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        # No committed lockfile: the sandbox this project was rebuilt in has no
-        # registry access, so the lockfile is generated here instead of being
-        # hand-maintained out of sync with reality. `npm install` also fixes
-        # up any peer-dependency drift (see vite.config.ts's manualChunks
-        # comment) that a stale `npm ci` would silently mask.
+        # `npm install` rather than `npm ci` so the platform-specific native
+        # bundler binary (rolldown) resolves for the runner; versions are still
+        # pinned by the committed package-lock.json.
         run: npm install
 
       - name: Lint

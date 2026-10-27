@@ -40,3 +40,10 @@ def quality(repo: RepositoryDep) -> dict[str, Any]:
 @router.get("/warehouse", response_model=WarehouseInfo)
 def warehouse_info(repo: RepositoryDep) -> dict[str, Any]:
     return repo.get_warehouse_info()
+
+
+@router.get("/sources")
+def sources(repo: RepositoryDep) -> dict[str, Any]:
+    """Provenance of the data snapshot: for each API series, the URL, fetch time,
+    the publisher's update stamp, row count and SHA-256 of the snapshot file."""
+    return repo.get_snapshot_manifest()

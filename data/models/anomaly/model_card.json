@@ -1,0 +1,210 @@
+{
+  "task": "anomaly",
+  "indicator_id": "avg_wage",
+  "title": "Imputation-artefact detection in the average-wage panel",
+  "trained_at": "2026-10-26T21:46:45+00:00",
+  "labels": {
+    "observed_cells": 2032,
+    "imputed_cells": 514,
+    "imputed_share": 0.2529527559055118,
+    "countries": 121,
+    "countries_with_imputation": 111,
+    "fingerprint_links": 136,
+    "iterations": 2,
+    "countries_with_single_genuine_year": 0,
+    "imputed_by_year": {
+      "2006": 36,
+      "2007": 36,
+      "2008": 33,
+      "2009": 27,
+      "2010": 25,
+      "2011": 20,
+      "2012": 21,
+      "2013": 22,
+      "2014": 21,
+      "2015": 21,
+      "2016": 19,
+      "2017": 14,
+      "2018": 18,
+      "2019": 21,
+      "2020": 32,
+      "2021": 44,
+      "2022": 104
+    }
+  },
+  "base_rate": 0.2529527559055118,
+  "cells": 2032,
+  "detectors": {
+    "rule": {
+      "description": "ETL rule: >40% move not explained by >=25% inflation",
+      "pr_auc": null,
+      "roc_auc": null,
+      "at_rule_budget": {
+        "precision": 0.5992779783393501,
+        "recall": 0.3229571984435798,
+        "f1": 0.4197218710493047,
+        "flagged": 277
+      },
+      "transition_level": {
+        "transitions": 1910,
+        "rejected": 145,
+        "contaminated": 558,
+        "precision": 0.9379310344827586,
+        "recall": 0.24372759856630824
+      }
+    },
+    "robust_z": {
+      "description": "max |robust z| of inflation-adjusted growth in/out",
+      "pr_auc": 0.40837836356899776,
+      "roc_auc": 0.6077741550165844,
+      "at_rule_budget": {
+        "precision": 0.5776173285198556,
+        "recall": 0.311284046692607,
+        "f1": 0.404551201011378,
+        "flagged": 277
+      },
+      "at_0_5": null
+    },
+    "isolation_forest": {
+      "description": "Isolation Forest on detector features",
+      "pr_auc": 0.5156342513937706,
+      "roc_auc": 0.7574219611100005,
+      "at_rule_budget": {
+        "precision": 0.6462093862815884,
+        "recall": 0.34824902723735407,
+        "f1": 0.4525916561314791,
+        "flagged": 277
+      },
+      "at_0_5": null
+    },
+    "lgbm_local": {
+      "description": "LightGBM, own-country features only (ablation: no cross-sectional features)",
+      "pr_auc": 0.9396640044513679,
+      "roc_auc": 0.9736918328950135,
+      "at_rule_budget": {
+        "precision": 0.9855595667870036,
+        "recall": 0.5311284046692607,
+        "f1": 0.6902654867256637,
+        "flagged": 277
+      },
+      "at_0_5": {
+        "precision": 0.8739837398373984,
+        "recall": 0.8365758754863813,
+        "f1": 0.8548707753479126,
+        "flagged": 492
+      }
+    },
+    "lgbm": {
+      "description": "LightGBM classifier, out-of-fold (GroupKFold by country)",
+      "pr_auc": 0.9669165572518078,
+      "roc_auc": 0.9843563361580617,
+      "at_rule_budget": {
+        "precision": 0.9963898916967509,
+        "recall": 0.5369649805447471,
+        "f1": 0.6978508217446271,
+        "flagged": 277
+      },
+      "at_0_5": {
+        "precision": 0.9318181818181818,
+        "recall": 0.877431906614786,
+        "f1": 0.9038076152304609,
+        "flagged": 484
+      }
+    }
+  },
+  "served_detector": "lgbm",
+  "served_threshold": 0.5,
+  "feature_importance_gain": [
+    {
+      "feature": "xs_dev_out",
+      "gain": 4972
+    },
+    {
+      "feature": "log_growth_out",
+      "gain": 3969
+    },
+    {
+      "feature": "log_growth_in",
+      "gain": 2954
+    },
+    {
+      "feature": "xs_dev_in",
+      "gain": 2643
+    },
+    {
+      "feature": "level_dev",
+      "gain": 1513
+    },
+    {
+      "feature": "abs_excess_max",
+      "gain": 917
+    },
+    {
+      "feature": "excess_in",
+      "gain": 741
+    },
+    {
+      "feature": "robust_z_in",
+      "gain": 617
+    },
+    {
+      "feature": "excess_out",
+      "gain": 598
+    },
+    {
+      "feature": "inflation_slog",
+      "gain": 530
+    },
+    {
+      "feature": "robust_z_out",
+      "gain": 521
+    },
+    {
+      "feature": "is_first_year",
+      "gain": 0
+    },
+    {
+      "feature": "is_last_year",
+      "gain": 0
+    },
+    {
+      "feature": "neighbours_observed",
+      "gain": 0
+    }
+  ],
+  "features": [
+    "log_growth_in",
+    "log_growth_out",
+    "excess_in",
+    "excess_out",
+    "abs_excess_max",
+    "robust_z_in",
+    "robust_z_out",
+    "xs_dev_in",
+    "xs_dev_out",
+    "level_dev",
+    "inflation_slog",
+    "is_first_year",
+    "is_last_year",
+    "neighbours_observed"
+  ],
+  "world_index": {
+    "2006": 0.9999999999999968,
+    "2007": 1.0681687739002115,
+    "2008": 1.1730277729157097,
+    "2009": 1.272945008128291,
+    "2010": 1.41647942562886,
+    "2011": 1.6528991864635698,
+    "2012": 1.8923379199536146,
+    "2013": 2.040326009445348,
+    "2014": 2.182353724921523,
+    "2015": 2.411376072260746,
+    "2016": 2.680384048764679,
+    "2017": 2.996388411558099,
+    "2018": 3.195907657877831,
+    "2019": 3.7864609122400887,
+    "2020": 2.6159978647268973,
+    "2021": 3.1192243023464545,
+    "2022": 5.580930272311352
+  }
+}

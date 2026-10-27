@@ -13,6 +13,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from realgrowth.etl import warehouse
 from realgrowth.etl.sources import INDICATORS
 from realgrowth.repository import Repository
@@ -43,9 +45,16 @@ class TestQualityReport:
         """Every raw label must resolve; see test_registry's exhaustive check too."""
         assert real_report["unresolved_entities"] == []
 
-    def test_flags_the_volatile_wage_series(self, real_report: dict[str, Any]) -> None:
-        """The imputation artefact this rebuild is designed to surface, not hide."""
-        assert real_report["flag_counts"].get("avg_wage:volatile_levels", 0) > 50
+    def test_flags_the_affected_wage_series(self, real_report: dict[str, Any]) -> None:
+        """The imputation artefact this rebuild is designed to surface, not hide.
+
+        With forensic labels most series are flagged ``imputed_levels``; the
+        plausibility rule (``volatile_levels``) catches the remainder, or
+        everything when no labels are available.
+        """
+        flags = real_report["flag_counts"]
+        flagged = flags.get("avg_wage:volatile_levels", 0) + flags.get("avg_wage:imputed_levels", 0)
+        assert flagged > 50
 
     def test_real_wage_growth_has_meaningful_coverage(self, real_report: dict[str, Any]) -> None:
         coverage = {c["indicator"]: c for c in real_report["coverage"]}
@@ -66,10 +75,61 @@ class TestRealWageGrowthEndToEnd:
             assert iso3 in by_country
             assert by_country[iso3] < 0
 
-    def test_zimbabwe_hyperinflation_survives_the_plausibility_filter(
-        self, real_repo: Repository
-    ) -> None:
-        """A genuine crisis must not be discarded as an imputation artefact."""
+    def test_hyperinflation_survives_the_plausibility_filter(self, real_repo: Repository) -> None:
+        """A genuine crisis must not be discarded as an imputation artefact.
+
+        Argentina's 2022 local-currency wage move exceeds the 40% rule, but
+        ~72% inflation explains it and the wage level is genuine, so it stays.
+        """
         snapshot = real_repo.get_snapshot("real_wage_growth", year=2022)
         by_country = {v["iso3"]: v["value"] for v in snapshot["values"]}
-        assert by_country.get("ZWE", 0) < -50
+        nominal = real_repo.get_snapshot("nominal_wage_growth", year=2022)
+        assert {v["iso3"]: v["value"] for v in nominal["values"]}["ARG"] > 40
+        assert by_country["ARG"] < -10
+
+    def test_imputed_wage_cells_never_produce_growth_rates(
+        self, real_repo: Repository, real_report: dict[str, Any]
+    ) -> None:
+        """With forensic labels available, no growth rate may touch an imputed
+        wage level. France's 2020-22 and Zimbabwe's 2020-22 wages were filled
+        upstream, so neither has a 2022 real wage growth figure."""
+        if real_report["issue_counts"].get("imputed_input", 0) == 0:
+            pytest.skip("no imputation labels in data/models/anomaly")
+        snapshot = real_repo.get_snapshot("real_wage_growth", year=2022)
+        iso3s = {v["iso3"] for v in snapshot["values"]}
+        assert "FRA" not in iso3s
+        assert "ZWE" not in iso3s
+        assert real_report["flag_counts"]["real_wage_growth:imputed_inputs"] > 50
+
+    def test_local_currency_growth_matches_published_magnitudes(
+        self, real_repo: Repository
+    ) -> None:
+        """In local currency, G7 real wage losses in 2022 were single digits
+        (ILO Global Wage Report 2022-23). The old USD-based chain produced
+        double-digit "losses" driven by dollar strength instead.
+        """
+        snapshot = real_repo.get_snapshot("real_wage_growth", year=2022)
+        by_country = {v["iso3"]: v["value"] for v in snapshot["values"]}
+        for iso3 in ("GBR", "DEU", "ITA", "JPN", "USA"):
+            assert -10 < by_country[iso3] < 0, iso3
+
+
+class TestApiSnapshot:
+    def test_inflation_reaches_recent_years(self, real_repo: Repository) -> None:
+        """The point of live ingestion: the data is no longer frozen at 2022."""
+        inflation = real_repo.get_indicator("inflation_rate")
+        assert inflation["max_year"] >= 2024
+        assert inflation["min_year"] == 1960
+
+    def test_imf_benchmark_is_loaded_as_external_model(self, real_warehouse: Path) -> None:
+        connection = warehouse.connect(real_warehouse, read_only=True)
+        try:
+            row = connection.execute(
+                "SELECT kind, (SELECT COUNT(*) FROM forecasts WHERE model_id = 'imf_weo') "
+                "FROM models WHERE id = 'imf_weo'"
+            ).fetchone()
+        finally:
+            connection.close()
+        assert row is not None
+        assert row[0] == "external"
+        assert row[1] > 500

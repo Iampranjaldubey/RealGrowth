@@ -17,7 +17,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from realgrowth import __version__
-from realgrowth.api import correlation, countries, indicators, meta, regions
+from realgrowth.api import correlation, countries, forecasts, indicators, meta, regions, tools
 from realgrowth.api.errors import register_error_handlers
 from realgrowth.config import get_settings
 from realgrowth.db import pool
@@ -58,9 +58,10 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="RealGrowth API",
         description=(
-            "Macroeconomic indicators for 218 countries: GDP, inflation, wages, "
-            "real wage growth, debt-to-GDP, diet cost and population, with a "
-            "correlation explorer and a published data-quality report."
+            "Macroeconomic data for 218 countries from the World Bank, IMF and "
+            "Our World in Data; real wage growth in local currency; inflation "
+            "forecasts with conformal prediction intervals; imputation-artefact "
+            "scores; and a purchasing-power calculator."
         ),
         version=__version__,
         lifespan=lifespan,
@@ -86,6 +87,8 @@ def create_app() -> FastAPI:
     app.include_router(countries.router)
     app.include_router(regions.router)
     app.include_router(correlation.router)
+    app.include_router(forecasts.router)
+    app.include_router(tools.router)
 
     return app
 

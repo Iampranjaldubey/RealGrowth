@@ -7,10 +7,10 @@ import { useSeries, useSnapshot } from "@/api/queries";
 import { formatByUnit, formatPercent } from "@/lib/formatters";
 
 const QUICK_LINKS = [
-  { path: "/correlation", label: "Correlation Explorer", icon: "🔬", color: "secondary" as const },
-  { path: "/indicators/real_wage_growth", label: "Real Wage Growth", icon: "🚀", color: "primary" as const },
-  { path: "/indicators/inflation_rate", label: "Inflation Trends", icon: "📈", color: "warning" as const },
-  { path: "/indicators/debt_to_gdp", label: "Debt Rankings", icon: "🏦", color: "danger" as const },
+  { path: "/forecasts", label: "Inflation Outlook", icon: "🔮", color: "secondary" as const },
+  { path: "/purchasing-power", label: "Purchasing Power", icon: "🧮", color: "primary" as const },
+  { path: "/indicators/real_wage_growth", label: "Real Wage Growth", icon: "🚀", color: "tertiary" as const },
+  { path: "/models", label: "Models & Methodology", icon: "🧠", color: "warning" as const },
 ];
 
 /**
@@ -68,7 +68,7 @@ export function HomePage() {
       <div className="two-col-grid">
         <ChartCard
           title="United States — Real Wage Growth"
-          subtitle="Wage growth minus inflation, year over year"
+          subtitle="Local-currency wage growth minus CPI inflation, year over year"
           loading={usSeries.isLoading}
           error={usSeries.error?.message}
         >

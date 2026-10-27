@@ -1,6 +1,6 @@
 [project]
 name = "realgrowth"
-version = "3.0.0"
+version = "4.0.0"
 description = "RealGrowth API — macroeconomic indicators, real wage growth and a correlation explorer"
 requires-python = ">=3.11"
 readme = "../README.md"
@@ -56,3 +56,9 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = "slowapi.*"
 ignore_missing_imports = true
+
+# `deprecated` (pulled in by slowapi -> limits) ships Python 3.12+ syntax on
+# newer interpreters, which mypy cannot parse under python_version = 3.11.
+[[tool.mypy.overrides]]
+module = ["deprecated", "deprecated.*"]
+follow_imports = "skip"

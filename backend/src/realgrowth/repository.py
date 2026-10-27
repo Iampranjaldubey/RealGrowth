@@ -48,7 +48,7 @@ class Repository:
         """Every indicator with its year span, coverage and provenance."""
         rows = self._connection.execute(
             """
-            SELECT id, name, unit, unit_symbol, description, source, source_url,
+            SELECT id, name, unit, unit_symbol, description, source, source_url, category,
                    direction, decimals, is_derived, depends_on,
                    min_year, max_year, country_count
             FROM indicators
@@ -465,9 +465,16 @@ class Repository:
         report: dict[str, Any] = json.loads(str(row["value"]))
         return report
 
+    def get_snapshot_manifest(self) -> dict[str, Any]:
+        row = self._connection.execute(
+            "SELECT value FROM etl_metadata WHERE key = 'snapshot_manifest'"
+        ).fetchone()
+        manifest: dict[str, Any] = json.loads(str(row["value"])) if row else {}
+        return manifest
+
     def get_warehouse_info(self) -> dict[str, Any]:
         rows = self._connection.execute(
-            "SELECT key, value FROM etl_metadata WHERE key != 'quality_report'"
+            "SELECT key, value FROM etl_metadata WHERE key IN ('schema_version', 'built_at')"
         ).fetchall()
         info = {str(row["key"]): str(row["value"]) for row in rows}
         counts = self._connection.execute(
@@ -484,4 +491,258 @@ class Repository:
             "observations": counts["observations"],
             "countries": counts["countries"],
             "indicators": counts["indicators"],
+        }
+
+    # ---------------------------------------------------------- forecasts
+
+    def list_models(self, indicator_id: str | None = None) -> list[dict[str, Any]]:
+        """Forecasting models (ours, baselines and the IMF benchmark)."""
+        query = "SELECT id, indicator_id, name, kind, is_champion, description FROM models"
+        params: list[Any] = []
+        if indicator_id:
+            query += " WHERE indicator_id = ?"
+            params.append(indicator_id)
+        query += " ORDER BY is_champion DESC, kind = 'external' DESC, kind, name"
+        rows = _rows_to_dicts(self._connection.execute(query, params).fetchall())
+        for row in rows:
+            row["is_champion"] = bool(row["is_champion"])
+        return rows
+
+    def get_champion(self, indicator_id: str) -> dict[str, Any]:
+        for model in self.list_models(indicator_id):
+            if model["is_champion"]:
+                return model
+        raise NotFoundError(f"no forecasting model has been trained for {indicator_id}")
+
+    def get_model_card(self, task: str) -> dict[str, Any]:
+        row = self._connection.execute(
+            "SELECT value FROM etl_metadata WHERE key = ?", (f"model_card:{task}",)
+        ).fetchone()
+        if row is None:
+            raise NotFoundError(f"no model card for {task!r}; train with `python -m realgrowth_ml`")
+        card: dict[str, Any] = json.loads(str(row["value"]))
+        return card
+
+    def get_country_forecast(
+        self, iso3: str, indicator_id: str, *, history_years: int = 25
+    ) -> dict[str, Any]:
+        """Everything the forecast page needs for one country.
+
+        History, the champion's forward forecasts with intervals, the IMF
+        benchmark, the champion's and naive baseline's out-of-sample backtest
+        for this country, and the TreeSHAP drivers of each forecast.
+        """
+        country = self.get_country(iso3)
+        indicator = self.get_indicator(indicator_id)
+        champion = self.get_champion(indicator_id)
+        code = country["iso3"]
+
+        history = _rows_to_dicts(
+            self._connection.execute(
+                """
+                SELECT year, value FROM observations
+                WHERE indicator_id = ? AND iso3 = ? AND year >= (
+                    SELECT MAX(year) FROM observations WHERE indicator_id = ? AND iso3 = ?
+                ) - ?
+                ORDER BY year
+                """,
+                (indicator_id, code, indicator_id, code, history_years),
+            ).fetchall()
+        )
+
+        forecast_rows = _rows_to_dicts(
+            self._connection.execute(
+                """
+                SELECT f.model_id, f.origin_year, f.target_year, f.horizon, f.point,
+                       f.lower_80, f.upper_80, f.lower_95, f.upper_95
+                FROM forecasts f JOIN models m ON m.id = f.model_id
+                WHERE f.iso3 = ? AND m.indicator_id = ?
+                ORDER BY f.model_id, f.target_year
+                """,
+                (code, indicator_id),
+            ).fetchall()
+        )
+        by_model: dict[str, list[dict[str, Any]]] = {}
+        for row in forecast_rows:
+            by_model.setdefault(str(row.pop("model_id")), []).append(row)
+
+        backtest_rows = _rows_to_dicts(
+            self._connection.execute(
+                """
+                SELECT model_id, origin_year, target_year, horizon, actual, point,
+                       lower_80, upper_80
+                FROM backtest_predictions
+                WHERE iso3 = ? AND model_id IN (?, 'naive') AND horizon = 1
+                ORDER BY model_id, target_year
+                """,
+                (code, champion["id"]),
+            ).fetchall()
+        )
+        backtest: dict[str, list[dict[str, Any]]] = {}
+        for row in backtest_rows:
+            backtest.setdefault(str(row.pop("model_id")), []).append(row)
+
+        drivers_rows = _rows_to_dicts(
+            self._connection.execute(
+                """
+                SELECT target_year, feature, feature_value, contribution
+                FROM forecast_contributions
+                WHERE model_id = ? AND iso3 = ?
+                ORDER BY target_year, ABS(contribution) DESC
+                """,
+                (champion["id"], code),
+            ).fetchall()
+        )
+        drivers: dict[int, list[dict[str, Any]]] = {}
+        for row in drivers_rows:
+            drivers.setdefault(int(row.pop("target_year")), []).append(row)
+
+        return {
+            "country": country,
+            "indicator": indicator,
+            "champion": champion,
+            "history": history,
+            "forecasts": [
+                {"model_id": model_id, "points": points} for model_id, points in by_model.items()
+            ],
+            "backtest": [
+                {"model_id": model_id, "points": points} for model_id, points in backtest.items()
+            ],
+            "drivers": [
+                {"target_year": year, "contributions": rows[:8]}
+                for year, rows in sorted(drivers.items())
+            ],
+        }
+
+    def get_forecast_snapshot(self, indicator_id: str, horizon: int) -> dict[str, Any]:
+        """The champion's forecast for every country at one horizon, ranked."""
+        champion = self.get_champion(indicator_id)
+        rows = _rows_to_dicts(
+            self._connection.execute(
+                """
+                SELECT f.iso3, c.name AS country, c.region, f.origin_year, f.target_year,
+                       f.point, f.lower_80, f.upper_80
+                FROM forecasts f JOIN countries c ON c.iso3 = f.iso3
+                WHERE f.model_id = ? AND f.horizon = ? AND c.is_aggregate = 0
+                ORDER BY f.point DESC
+                """,
+                (champion["id"], horizon),
+            ).fetchall()
+        )
+        return {"model": champion, "horizon": horizon, "values": rows}
+
+    # ---------------------------------------------------------- anomalies
+
+    def get_anomaly_scores(
+        self, indicator_id: str, iso3: str | None = None, *, flagged_only: bool = False
+    ) -> list[dict[str, Any]]:
+        self.get_indicator(indicator_id)
+        clauses = ["a.indicator_id = ?"]
+        params: list[Any] = [indicator_id]
+        if iso3:
+            code = self.get_country(iso3)["iso3"]
+            clauses.append("a.iso3 = ?")
+            params.append(code)
+        if flagged_only:
+            clauses.append("a.is_flagged = 1")
+        rows = self._connection.execute(
+            f"""
+            SELECT a.iso3, c.name AS country, a.year, a.score, a.is_flagged
+            FROM anomaly_scores a JOIN countries c ON c.iso3 = a.iso3
+            WHERE {" AND ".join(clauses)}
+            ORDER BY c.name, a.year
+            """,
+            params,
+        ).fetchall()
+        out = _rows_to_dicts(rows)
+        for row in out:
+            row["is_flagged"] = bool(row["is_flagged"])
+        return out
+
+    # ------------------------------------------------------ purchasing power
+
+    def purchasing_power(
+        self, iso3: str, amount: float, from_year: int, to_year: int
+    ) -> dict[str, Any]:
+        """What ``amount`` in ``from_year`` is worth in ``to_year`` prices.
+
+        Uses the consumer price index where it is observed. Years after the
+        last observation are extended with the champion inflation forecast and
+        marked ``projected``, so the calculator can answer "what will my salary
+        need to be next year?" without pretending a forecast is data.
+        """
+        if amount <= 0:
+            raise ValueError("amount must be positive")
+        country = self.get_country(iso3)
+        code = country["iso3"]
+        cpi = {
+            int(row["year"]): float(row["value"])
+            for row in self._connection.execute(
+                "SELECT year, value FROM observations "
+                "WHERE indicator_id = 'cpi_index' AND iso3 = ?",
+                (code,),
+            ).fetchall()
+        }
+        if not cpi:
+            raise NotFoundError(f"no consumer price index for {country['name']}")
+
+        last_observed = max(cpi)
+        projected_years: set[int] = set()
+        forecast_rows = self._connection.execute(
+            """
+            SELECT f.target_year, f.point FROM forecasts f
+            JOIN models m ON m.id = f.model_id
+            WHERE f.iso3 = ? AND m.indicator_id = 'inflation_rate' AND m.is_champion = 1
+            ORDER BY f.target_year
+            """,
+            (code,),
+        ).fetchall()
+        for row in forecast_rows:
+            year = int(row["target_year"])
+            if year == max(cpi) + 1:
+                cpi[year] = cpi[year - 1] * (1 + float(row["point"]) / 100.0)
+                projected_years.add(year)
+
+        first_observed = min(cpi)
+        last_available = max(cpi)
+        for year in (from_year, to_year):
+            if year not in cpi:
+                raise ValueError(
+                    f"{country['name']} has a price index for {first_observed}-{last_observed}"
+                    + (
+                        f" (projected to {last_available})"
+                        if last_available > last_observed
+                        else ""
+                    )
+                    + f"; {year} is not available"
+                )
+
+        factor = cpi[to_year] / cpi[from_year]
+        low, high = min(from_year, to_year), max(from_year, to_year)
+        path = [
+            {
+                "year": year,
+                "index": cpi[year],
+                "value": amount * cpi[year] / cpi[from_year],
+                "projected": year in projected_years,
+            }
+            for year in range(low, high + 1)
+            if year in cpi
+        ]
+        years = high - low
+        # Geometric rate of change in the equivalent amount per year. It already
+        # carries the right sign in both directions (factor < 1 going back in time
+        # when prices rose), matching cumulative_inflation_pct.
+        annualised = (factor ** (1 / years) - 1) * 100 if years and factor > 0 else 0.0
+        return {
+            "country": country,
+            "amount": amount,
+            "from_year": from_year,
+            "to_year": to_year,
+            "equivalent": amount * factor,
+            "cumulative_inflation_pct": (factor - 1) * 100,
+            "annualised_inflation_pct": annualised,
+            "uses_projection": any(p["projected"] for p in path),
+            "last_observed_year": last_observed,
+            "path": path,
         }

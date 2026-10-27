@@ -6,6 +6,9 @@ import { HomePage } from "@/pages/HomePage";
 import { IndicatorExplorerPage } from "@/pages/IndicatorExplorerPage";
 import { CorrelationPage } from "@/pages/CorrelationPage";
 import { DataQualityPage } from "@/pages/DataQualityPage";
+import { ForecastPage } from "@/pages/ForecastPage";
+import { PurchasingPowerPage } from "@/pages/PurchasingPowerPage";
+import { ModelsPage } from "@/pages/ModelsPage";
 
 export function App() {
   return (
@@ -17,6 +20,9 @@ export function App() {
             <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/forecasts" element={<ForecastPage />} />
+                <Route path="/purchasing-power" element={<PurchasingPowerPage />} />
+                <Route path="/models" element={<ModelsPage />} />
                 <Route path="/correlation" element={<CorrelationPage />} />
                 <Route path="/data-quality" element={<DataQualityPage />} />
                 <Route path="/indicators/:indicatorId" element={<IndicatorExplorerPage />} />

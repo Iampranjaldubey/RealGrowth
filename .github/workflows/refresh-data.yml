@@ -1,0 +1,65 @@
+name: Refresh data and models
+
+# Weekly: fetch fresh API snapshots, rebuild the warehouse, retrain, and open a
+# pull request with the diff. Nothing ships until a human reviews what the
+# publishers revised and how the model metrics moved.
+
+on:
+  schedule:
+    - cron: "17 4 * * 1" # Mondays 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: backend/src:ml/src
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements-dev.txt
+            ml/requirements.txt
+
+      - name: Install
+        run: pip install -r backend/requirements-dev.txt -r ml/requirements.txt
+
+      - name: 1. Fetch API snapshots
+        run: python -m realgrowth.ingest && python -m realgrowth.ingest --verify
+
+      - name: 2. Build warehouse
+        run: python -m realgrowth.etl --strict --quiet
+
+      - name: 3. Train and evaluate
+        run: python -m realgrowth_ml all
+
+      - name: 4. Rebuild with model outputs
+        run: python -m realgrowth.etl --strict --quiet
+
+      - name: Tests
+        run: |
+          (cd backend && pytest -q)
+          (cd ml && PYTHONPATH=src:../backend/src pytest -q)
+
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automated/data-refresh
+          commit-message: "data: weekly API snapshot and model refresh"
+          title: "Weekly data and model refresh"
+          body: |
+            Automated refresh: `data/raw/api/` snapshot, `data/models/` artefacts.
+            Review `manifest.json` for publisher updates and `model_card.json`
+            (`champion_test`) for metric changes before merging.
+          add-paths: |
+            data/raw/api
+            data/models

@@ -64,4 +64,28 @@ describe("api client", () => {
     const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
     expect(calledUrl.startsWith("/api")).toBe(true);
   });
+
+  it("builds the purchasing-power query with snake_case parameters", async () => {
+    const fetchMock = mockFetch({ ok: true, json: async () => ({}) });
+    await api.purchasingPower({ country: "IND", amount: 50000, fromYear: 2015, toYear: 2024 });
+    const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain("/v1/tools/purchasing-power?");
+    expect(calledUrl).toContain("from_year=2015");
+    expect(calledUrl).toContain("to_year=2024");
+    expect(calledUrl).toContain("amount=50000");
+  });
+
+  it("escapes the country in forecast URLs", async () => {
+    const fetchMock = mockFetch({ ok: true, json: async () => ({}) });
+    await api.getCountryForecast("A/B");
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/v1/forecasts/A%2FB");
+  });
+
+  it("only sends flagged_only when asked", async () => {
+    const fetchMock = mockFetch({ ok: true, json: async () => [] });
+    await api.getAnomalies({ country: "ESP" });
+    const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain("country=ESP");
+    expect(calledUrl).not.toContain("flagged_only");
+  });
 });
